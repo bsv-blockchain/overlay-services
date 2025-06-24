@@ -29,12 +29,24 @@ export class OverlayGASPStorage implements GASPStorage {
    * @param since
    * @returns
    */
-  async findKnownUTXOs (since: number): Promise<Array<{ txid: string, outputIndex: number }>> {
-    const UTXOs = await this.engine.storage.findUTXOsForTopic(this.topic, since)
-    return UTXOs.map(output => ({
-      txid: output.txid,
-      outputIndex: output.outputIndex
-    }))
+  async findKnownUTXOs (since: number, limit?: number): Promise<{ utxos: Array<{ txid: string, outputIndex: number }>, until: number }> {
+    const outputs = await this.engine.storage.findUTXOsForTopic(this.topic, since, limit)
+    
+    // Calculate the until timestamp as the most recent timestamp in the results
+    let until = since
+    for (const output of outputs) {
+      if (output.firstSeen && output.firstSeen > until) {
+        until = output.firstSeen
+      }
+    }
+    
+    return {
+      utxos: outputs.map(output => ({
+        txid: output.txid,
+        outputIndex: output.outputIndex
+      })),
+      until
+    }
   }
 
   /**

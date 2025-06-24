@@ -27,4 +27,6 @@ export interface Output {
   /** The transaction data for the output */
   beef?: number[]
   blockHeight?: number
+  /** The timestamp when the output was first seen (Unix milliseconds) */
+  firstSeen?: number
 }

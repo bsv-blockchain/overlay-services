@@ -29,7 +29,7 @@ export class OverlayGASPRemote implements GASPRemote {
     const result: GASPInitialResponse = await response.json()
 
     // Validate and return the response in the correct format
-    if (!Array.isArray(result.UTXOList) || typeof result.since !== 'number') {
+    if (!Array.isArray(result.UTXOList) || typeof result.since !== 'number' || typeof result.until !== 'number') {
       throw new Error('Invalid response format')
     }
 
@@ -38,7 +38,8 @@ export class OverlayGASPRemote implements GASPRemote {
         txid: utxo.txid,
         outputIndex: utxo.outputIndex
       })),
-      since: result.since
+      since: result.since,
+      until: result.until
     }
   }
 

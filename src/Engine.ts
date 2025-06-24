@@ -667,16 +667,25 @@ export class Engine {
    * @returns A promise that resolves to a GASPInitialResponse containing the list of UTXOs and the provided min block height.
    */
   async provideForeignSyncResponse (initialRequest: GASPInitialRequest, topic: string): Promise<GASPInitialResponse> {
-    const UTXOs = await this.storage.findUTXOsForTopic(topic, initialRequest.since)
+    const outputs = await this.storage.findUTXOsForTopic(topic, initialRequest.since, initialRequest.limit)
+
+    // Calculate the until timestamp as the most recent timestamp in the results
+    let until = initialRequest.since
+    for (const output of outputs) {
+      if (output.firstSeen && output.firstSeen > until) {
+        until = output.firstSeen
+      }
+    }
 
     return {
-      UTXOList: UTXOs.map(output => {
+      UTXOList: outputs.map(output => {
         return {
           txid: output.txid,
           outputIndex: output.outputIndex
         }
       }),
-      since: initialRequest.since
+      since: initialRequest.since,
+      until
     }
   }
 

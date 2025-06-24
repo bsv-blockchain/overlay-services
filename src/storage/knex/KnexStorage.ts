@@ -34,7 +34,8 @@ export class KnexStorage implements Storage {
       'outputs.satoshis',
       'outputs.outputsConsumed',
       'outputs.spent',
-      'outputs.consumedBy'
+      'outputs.consumedBy',
+      'outputs.firstSeen'
     ]
 
     if (includeBEEF) {
@@ -72,7 +73,8 @@ export class KnexStorage implements Storage {
       'outputs.satoshis',
       'outputs.outputsConsumed',
       'outputs.spent',
-      'outputs.consumedBy'
+      'outputs.consumedBy',
+      'outputs.firstSeen'
     ]
 
     if (includeBEEF) {
@@ -97,15 +99,19 @@ export class KnexStorage implements Storage {
     }))
   }
 
-  async findUTXOsForTopic (topic: string, since?: number, includeBEEF: boolean = false): Promise<Output[]> {
+  async findUTXOsForTopic (topic: string, since?: number, limit?: number, includeBEEF: boolean = false): Promise<Output[]> {
     // Base query to get outputs
     const query = this.knex('outputs').where({ 'outputs.topic': topic, 'outputs.spent': false })
 
-    // If provided, additionally filters UTXOs by block height
+    // If provided, additionally filters UTXOs by firstSeen timestamp
     if (since !== undefined && since > 0) {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      query.andWhere('outputs.blockHeight', '>=', since)
+      query.andWhere('outputs.firstSeen', '>=', since)
     }
+
+    // Sort by firstSeen timestamp
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    query.orderBy('outputs.firstSeen', 'asc')
 
     // Select necessary fields from outputs and conditionally include beef from transactions
     const selectFields = [
@@ -116,13 +122,20 @@ export class KnexStorage implements Storage {
       'outputs.satoshis',
       'outputs.outputsConsumed',
       'outputs.spent',
-      'outputs.consumedBy'
+      'outputs.consumedBy',
+      'outputs.firstSeen'
     ]
 
     if (includeBEEF) {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       query.leftJoin('transactions', 'outputs.txid', 'transactions.txid')
       selectFields.push('transactions.beef')
+    }
+
+    // Apply limit if specified
+    if (limit !== undefined && limit > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      query.limit(limit)
     }
 
     const outputs = await query.select(selectFields)
@@ -165,7 +178,8 @@ export class KnexStorage implements Storage {
       satoshis: Number(output.satoshis),
       outputsConsumed: JSON.stringify(output.outputsConsumed),
       consumedBy: JSON.stringify(output.consumedBy),
-      spent: output.spent
+      spent: output.spent,
+      firstSeen: output.firstSeen || Date.now()
     })]
 
     if (output.beef !== undefined) {

@@ -44,13 +44,22 @@ describe('OverlayGASPStorage', () => {
 
   describe('findKnownUTXOs', () => {
     it('should return known UTXOs since a given timestamp', async () => {
-      const mockUTXOs = [{ txid: 'txid1', outputIndex: 0 }, { txid: 'txid2', outputIndex: 1 }]
-      mockEngine.storage.findUTXOsForTopic.mockResolvedValue(mockUTXOs)
+      const mockOutputs = [
+        { txid: 'txid1', outputIndex: 0, firstSeen: 1234567890 }, 
+        { txid: 'txid2', outputIndex: 1, firstSeen: 1234567890 }
+      ]
+      mockEngine.storage.findUTXOsForTopic.mockResolvedValue(mockOutputs)
 
       const result = await overlayStorage.findKnownUTXOs(1234567890)
 
-      expect(result).toEqual(mockUTXOs)
-      expect(mockEngine.storage.findUTXOsForTopic).toHaveBeenCalledWith('test-topic', 1234567890)
+      expect(result).toEqual({
+        utxos: [
+          { txid: 'txid1', outputIndex: 0 },
+          { txid: 'txid2', outputIndex: 1 }
+        ],
+        until: 1234567890
+      })
+      expect(mockEngine.storage.findUTXOsForTopic).toHaveBeenCalledWith('test-topic', 1234567890, undefined)
     })
 
     it('should handle errors correctly', async () => {
