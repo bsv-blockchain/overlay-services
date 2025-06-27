@@ -1,4 +1,4 @@
-import { GASPNode, GASPNodeResponse, GASPStorage } from '@bsv/gasp'
+import { GASPNode, GASPNodeResponse, GASPStorage, GASPOutput } from '@bsv/gasp'
 import { MerklePath, Transaction, Utils } from '@bsv/sdk'
 import { Engine } from '../Engine.js'
 
@@ -29,11 +29,13 @@ export class OverlayGASPStorage implements GASPStorage {
    * @param since
    * @returns
    */
-  async findKnownUTXOs (since: number): Promise<Array<{ txid: string, outputIndex: number }>> {
-    const UTXOs = await this.engine.storage.findUTXOsForTopic(this.topic, since)
-    return UTXOs.map(output => ({
+  async findKnownUTXOs (since: number, limit?: number): Promise<GASPOutput[]> {
+    const outputs = await this.engine.storage.findUTXOsForTopic(this.topic, since, limit)
+    
+    return outputs.map(output => ({
       txid: output.txid,
-      outputIndex: output.outputIndex
+      outputIndex: output.outputIndex,
+      score: output.score
     }))
   }
 
@@ -328,4 +330,5 @@ export class OverlayGASPStorage implements GASPStorage {
     const finalTX = hydrator(node)
     return finalTX.toBEEF()
   }
+
 }
