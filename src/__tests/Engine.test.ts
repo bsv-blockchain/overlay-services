@@ -638,15 +638,7 @@ describe('BSV Overlay Services Engine', () => {
         })
         // Test the new UTXO was added
         expect(mockStorageEngine.insertOutput).toHaveBeenCalledWith(expect.objectContaining({
-          txid: mockOutput.txid,
-          outputIndex: mockOutput.outputIndex,
-          outputScript: mockOutput.outputScript,
-          satoshis: mockOutput.satoshis,
-          topic: mockOutput.topic,
-          spent: mockOutput.spent,
-          beef: mockOutput.beef,
-          consumedBy: mockOutput.consumedBy,
-          outputsConsumed: mockOutput.outputsConsumed,
+          ...mockOutput,
           score: expect.any(Number)
         }))
       })
