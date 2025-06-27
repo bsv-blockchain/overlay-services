@@ -113,7 +113,7 @@ export interface Storage {
    * Retrieves the last interaction score for a given host and topic
    * @param host — The host identifier
    * @param topic — The topic to query
-   * @returns The last interaction score, or null if not found
+   * @returns The last interaction score, or 0 if not found
    */
-  getLastInteraction: (host: string, topic: string) => Promise<number | null>
+  getLastInteraction: (host: string, topic: string) => Promise<number>
 }

@@ -636,7 +636,7 @@ export class Engine {
 
           try {
             // Read the last interaction score from storage
-            const lastInteraction = await this.storage.getLastInteraction(endpoint, topic) ?? 0
+            const lastInteraction = await this.storage.getLastInteraction(endpoint, topic)
             
             const gasp = new GASP(
               new OverlayGASPStorage(topic, this),

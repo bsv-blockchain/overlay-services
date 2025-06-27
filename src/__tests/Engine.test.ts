@@ -93,7 +93,7 @@ describe('BSV Overlay Services Engine', () => {
       deleteOutput: jest.fn(),
       findUTXOsForTopic: jest.fn(),
       updateLastInteraction: jest.fn(),
-      getLastInteraction: jest.fn(async () => null)
+      getLastInteraction: jest.fn(async () => 0)
     }
   })
 

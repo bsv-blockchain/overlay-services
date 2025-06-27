@@ -248,12 +248,12 @@ export class KnexStorage implements Storage {
       .merge({ since })
   }
 
-  async getLastInteraction (host: string, topic: string): Promise<number | null> {
+  async getLastInteraction (host: string, topic: string): Promise<number> {
     const result = await this.knex('host_sync_state')
       .where({ host, topic })
       .select('since')
       .first()
 
-    return result ? result.since : null
+    return result ? result.since : 0
   }
 }
