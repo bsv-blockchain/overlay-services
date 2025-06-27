@@ -72,7 +72,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@bsv/gasp": "github:shruggr/gasp-core#e343bef386ad7011603c93ed251f24e1da2f412c",
+    "@bsv/gasp": "github:shruggr/gasp-core#de2914e105bc95ddf998424d3f9e2fc200768331",
     "@bsv/sdk": "^1.6.1",
     "knex": "^3.1.0"
   }

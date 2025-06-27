@@ -330,23 +330,5 @@ export class OverlayGASPStorage implements GASPStorage {
     const finalTX = hydrator(node)
     return finalTX.toBEEF()
   }
-  
-  /**
-   * Updates the last interaction score for a given host
-   * @param host The host identifier
-   * @param since The score value to store
-   */
-  async updateLastInteraction (host: string, since: number): Promise<void> {
-    return await this.engine.storage.updateLastInteraction(host, this.topic, since)
-  }
-  
-  /**
-   * Retrieves the last interaction score for a given host
-   * @param host The host identifier
-   * @returns The last interaction score, or null if not found
-   */
-  async getLastInteraction (host: string): Promise<number | null> {
-    return await this.engine.storage.getLastInteraction(host, this.topic)
-  }
 
 }

@@ -635,15 +635,23 @@ export class Engine {
           this.logger.info(`[GASP SYNC] Starting sync for topic "${topic}" with peer "${endpoint}"`)
 
           try {
+            // Read the last interaction score from storage
+            const lastInteraction = await this.storage.getLastInteraction(endpoint, topic) ?? 0
+            
             const gasp = new GASP(
               new OverlayGASPStorage(topic, this),
               new OverlayGASPRemote(endpoint, topic),
-              0,
+              lastInteraction,
               `[GASP Sync of ${topic} with ${endpoint}]`,
               true,
               true
             )
             await gasp.sync(endpoint, DEFAULT_GASP_SYNC_LIMIT)
+            
+            // Save the updated last interaction score
+            if (gasp.lastInteraction > lastInteraction) {
+              await this.storage.updateLastInteraction(endpoint, topic, gasp.lastInteraction)
+            }
 
             this.logger.info(`[GASP SYNC] Sync successful for topic "${topic}" with peer "${endpoint}"`)
           } catch (err) {
