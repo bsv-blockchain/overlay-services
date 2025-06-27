@@ -1,4 +1,4 @@
-import { GASPNode, GASPNodeResponse, GASPStorage } from '@bsv/gasp'
+import { GASPNode, GASPNodeResponse, GASPStorage, GASPOutput } from '@bsv/gasp'
 import { MerklePath, Transaction, Utils } from '@bsv/sdk'
 import { Engine } from '../Engine.js'
 
@@ -29,24 +29,14 @@ export class OverlayGASPStorage implements GASPStorage {
    * @param since
    * @returns
    */
-  async findKnownUTXOs (since: number, limit?: number): Promise<{ utxos: Array<{ txid: string, outputIndex: number }>, until: number }> {
+  async findKnownUTXOs (since: number, limit?: number): Promise<GASPOutput[]> {
     const outputs = await this.engine.storage.findUTXOsForTopic(this.topic, since, limit)
     
-    // Calculate the until timestamp as the most recent timestamp in the results
-    let until = since
-    for (const output of outputs) {
-      if (output.firstSeen && output.firstSeen > until) {
-        until = output.firstSeen
-      }
-    }
-    
-    return {
-      utxos: outputs.map(output => ({
-        txid: output.txid,
-        outputIndex: output.outputIndex
-      })),
-      until
-    }
+    return outputs.map(output => ({
+      txid: output.txid,
+      outputIndex: output.outputIndex,
+      score: output.score
+    }))
   }
 
   /**
@@ -340,4 +330,23 @@ export class OverlayGASPStorage implements GASPStorage {
     const finalTX = hydrator(node)
     return finalTX.toBEEF()
   }
+  
+  /**
+   * Updates the last interaction score for a given host
+   * @param host The host identifier
+   * @param since The score value to store
+   */
+  async updateLastInteraction (host: string, since: number): Promise<void> {
+    return await this.engine.storage.updateLastInteraction(host, this.topic, since)
+  }
+  
+  /**
+   * Retrieves the last interaction score for a given host
+   * @param host The host identifier
+   * @returns The last interaction score, or null if not found
+   */
+  async getLastInteraction (host: string): Promise<number | null> {
+    return await this.engine.storage.getLastInteraction(host, this.topic)
+  }
+
 }

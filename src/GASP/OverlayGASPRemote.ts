@@ -29,17 +29,17 @@ export class OverlayGASPRemote implements GASPRemote {
     const result: GASPInitialResponse = await response.json()
 
     // Validate and return the response in the correct format
-    if (!Array.isArray(result.UTXOList) || typeof result.since !== 'number' || typeof result.until !== 'number') {
+    if (!Array.isArray(result.UTXOList) || typeof result.since !== 'number') {
       throw new Error('Invalid response format')
     }
 
     return {
       UTXOList: result.UTXOList.map((utxo: any) => ({
         txid: utxo.txid,
-        outputIndex: utxo.outputIndex
+        outputIndex: utxo.outputIndex,
+        score: utxo.score
       })),
-      since: result.since,
-      until: result.until
+      since: result.since
     }
   }
 

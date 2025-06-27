@@ -35,7 +35,7 @@ export class KnexStorage implements Storage {
       'outputs.outputsConsumed',
       'outputs.spent',
       'outputs.consumedBy',
-      'outputs.firstSeen'
+      'outputs.score'
     ]
 
     if (includeBEEF) {
@@ -74,7 +74,7 @@ export class KnexStorage implements Storage {
       'outputs.outputsConsumed',
       'outputs.spent',
       'outputs.consumedBy',
-      'outputs.firstSeen'
+      'outputs.score'
     ]
 
     if (includeBEEF) {
@@ -103,15 +103,15 @@ export class KnexStorage implements Storage {
     // Base query to get outputs
     const query = this.knex('outputs').where({ 'outputs.topic': topic, 'outputs.spent': false })
 
-    // If provided, additionally filters UTXOs by firstSeen timestamp
+    // If provided, additionally filters UTXOs by score
     if (since !== undefined && since > 0) {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      query.andWhere('outputs.firstSeen', '>=', since)
+      query.andWhere('outputs.score', '>=', since)
     }
 
-    // Sort by firstSeen timestamp
+    // Sort by score
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    query.orderBy('outputs.firstSeen', 'asc')
+    query.orderBy('outputs.score', 'asc')
 
     // Select necessary fields from outputs and conditionally include beef from transactions
     const selectFields = [
@@ -123,7 +123,7 @@ export class KnexStorage implements Storage {
       'outputs.outputsConsumed',
       'outputs.spent',
       'outputs.consumedBy',
-      'outputs.firstSeen'
+      'outputs.score'
     ]
 
     if (includeBEEF) {
@@ -179,7 +179,7 @@ export class KnexStorage implements Storage {
       outputsConsumed: JSON.stringify(output.outputsConsumed),
       consumedBy: JSON.stringify(output.consumedBy),
       spent: output.spent,
-      firstSeen: output.firstSeen || Date.now()
+      score: output.score
     })]
 
     if (output.beef !== undefined) {
@@ -239,5 +239,21 @@ export class KnexStorage implements Storage {
       .first()
 
     return !!result
+  }
+
+  async updateLastInteraction (host: string, topic: string, since: number): Promise<void> {
+    await this.knex('host_sync_state')
+      .insert({ host, topic, since })
+      .onConflict(['host', 'topic'])
+      .merge({ since })
+  }
+
+  async getLastInteraction (host: string, topic: string): Promise<number | null> {
+    const result = await this.knex('host_sync_state')
+      .where({ host, topic })
+      .select('since')
+      .first()
+
+    return result ? result.since : null
   }
 }

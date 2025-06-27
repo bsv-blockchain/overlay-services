@@ -100,4 +100,20 @@ export interface Storage {
    * @returns Whether the transaction is already applied
    */
   doesAppliedTransactionExist: (tx: AppliedTransaction) => Promise<boolean>
+
+  /**
+   * Updates the last interaction score for a given host and topic
+   * @param host — The host identifier
+   * @param topic — The topic for which to update the interaction score
+   * @param since — The score value to store
+   */
+  updateLastInteraction: (host: string, topic: string, since: number) => Promise<void>
+
+  /**
+   * Retrieves the last interaction score for a given host and topic
+   * @param host — The host identifier
+   * @param topic — The topic to query
+   * @returns The last interaction score, or null if not found
+   */
+  getLastInteraction: (host: string, topic: string) => Promise<number | null>
 }

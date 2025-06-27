@@ -25,6 +25,8 @@ import { SyncConfiguration } from './SyncConfiguration.js'
 import { OverlayGASPRemote } from './GASP/OverlayGASPRemote.js'
 import { OverlayGASPStorage } from './GASP/OverlayGASPStorage.js'
 
+const DEFAULT_GASP_SYNC_LIMIT = 10000
+
 /**
  * An engine for running BSV Overlay Services (topic managers and lookup services).
  */
@@ -355,7 +357,8 @@ export class Engine {
           spent: false,
           beef: taggedBEEF.beef,
           consumedBy: [],
-          outputsConsumed
+          outputsConsumed,
+          score: Date.now()
         })
         this.endTime(`insertNewOutput_${txid.substring(0, 10)}`)
         newUTXOs.push({ txid, outputIndex })
@@ -640,7 +643,7 @@ export class Engine {
               true,
               true
             )
-            await gasp.sync()
+            await gasp.sync(endpoint, DEFAULT_GASP_SYNC_LIMIT)
 
             this.logger.info(`[GASP SYNC] Sync successful for topic "${topic}" with peer "${endpoint}"`)
           } catch (err) {
@@ -669,23 +672,13 @@ export class Engine {
   async provideForeignSyncResponse (initialRequest: GASPInitialRequest, topic: string): Promise<GASPInitialResponse> {
     const outputs = await this.storage.findUTXOsForTopic(topic, initialRequest.since, initialRequest.limit)
 
-    // Calculate the until timestamp as the most recent timestamp in the results
-    let until = initialRequest.since
-    for (const output of outputs) {
-      if (output.firstSeen && output.firstSeen > until) {
-        until = output.firstSeen
-      }
-    }
-
     return {
-      UTXOList: outputs.map(output => {
-        return {
-          txid: output.txid,
-          outputIndex: output.outputIndex
-        }
-      }),
-      since: initialRequest.since,
-      until
+      UTXOList: outputs.map(output => ({
+        txid: output.txid,
+        outputIndex: output.outputIndex,
+        score: output.score
+      })),
+      since: initialRequest.since
     }
   }
 

@@ -29,7 +29,8 @@ const mockOutput: Output = {
   beef: exampleBeef,
   spent: false,
   outputsConsumed: [],
-  consumedBy: []
+  consumedBy: [],
+  score: Date.now()
 }
 
 const invalidHostingUrls = [
@@ -90,7 +91,9 @@ describe('BSV Overlay Services Engine', () => {
       updateConsumedBy: jest.fn(),
       updateTransactionBEEF: jest.fn(),
       deleteOutput: jest.fn(),
-      findUTXOsForTopic: jest.fn()
+      findUTXOsForTopic: jest.fn(),
+      updateLastInteraction: jest.fn(),
+      getLastInteraction: jest.fn(async () => null)
     }
   })
 
@@ -246,7 +249,8 @@ describe('BSV Overlay Services Engine', () => {
       beef: exampleBeef,
       spent: false,
       outputsConsumed: [],
-      consumedBy: []
+      consumedBy: [],
+      score: Date.now()
     }
     it('0 simple proof', async () => {
       const beef = beef27c8f_1
@@ -262,7 +266,8 @@ describe('BSV Overlay Services Engine', () => {
         beef: tx.toBEEF(),
         spent: false,
         outputsConsumed: [],
-        consumedBy: []
+        consumedBy: [],
+        score: Date.now()
       }
 
       mockLookupService.lookup = jest.fn(async () => [{
@@ -311,7 +316,8 @@ describe('BSV Overlay Services Engine', () => {
           beef: tx.toBEEF(),
           spent: false,
           outputsConsumed: [],
-          consumedBy: []
+          consumedBy: [],
+          score: Date.now()
         }
         if (consumes) {
           const c = findOutput(consumes.txid, consumes.outputIndex)
@@ -631,7 +637,18 @@ describe('BSV Overlay Services Engine', () => {
           topics: ['hello']
         })
         // Test the new UTXO was added
-        expect(mockStorageEngine.insertOutput).toHaveBeenCalledWith(mockOutput)
+        expect(mockStorageEngine.insertOutput).toHaveBeenCalledWith(expect.objectContaining({
+          txid: mockOutput.txid,
+          outputIndex: mockOutput.outputIndex,
+          outputScript: mockOutput.outputScript,
+          satoshis: mockOutput.satoshis,
+          topic: mockOutput.topic,
+          spent: mockOutput.spent,
+          beef: mockOutput.beef,
+          consumedBy: mockOutput.consumedBy,
+          outputsConsumed: mockOutput.outputsConsumed,
+          score: expect.any(Number)
+        }))
       })
       it('Notifies lookup services about incoming admissible UTXOs', async () => {
         // Mock findUTXO to return a UTXO

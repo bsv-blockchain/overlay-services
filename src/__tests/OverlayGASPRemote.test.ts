@@ -22,9 +22,8 @@ describe('OverlayGASPRemote', () => {
     it('should send a request and return a valid response', async () => {
       const mockRequest: GASPInitialRequest = { version: 1, since: 0 }
       const mockResponse: GASPInitialResponse = {
-        UTXOList: [{ txid: 'txid1', outputIndex: 0 }],
-        since: 1234567890,
-        until: 1234567900
+        UTXOList: [{ txid: 'txid1', outputIndex: 0, score: 1234567890 }],
+        since: 1234567890
       };
 
       (fetch as jest.Mock).mockResolvedValue({
