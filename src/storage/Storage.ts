@@ -38,7 +38,7 @@ export interface Storage {
   /**
    * Finds current UTXOs that have been admitted into a given topic
    * @param topic - The topic for which we want to find Unspent Transaction Outputs (UTXOs).
-   * @param since - Optional parameter indicating the minimum date (timestamp? block height?) to retrieve matching UTXOs from. TODO: We need to decide about which time format to use for synchronization.
+   * @param since - Optional parameter indicating the minimum score value to retrieve matching UTXOs from. This is used for score-based filtering.
    * @param limit - Optional parameter to limit the number of results returned
    * @returns A promise that resolves to an array of matching UTXOs.
    */
