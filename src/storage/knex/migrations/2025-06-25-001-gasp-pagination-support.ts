@@ -7,7 +7,7 @@ export async function up (knex: Knex): Promise<void> {
   if (!hasScoreColumn) {
     // Add new column for score (can be timestamp or any other sorting factor)
     await knex.schema.table('outputs', table => {
-      table.float('score').notNullable().defaultTo(knex.fn.now())
+      table.float('score').notNullable().defaultTo(Date.now())
       // Create compound index on topic and score for efficient querying
       table.index(['topic', 'score'])
     })
