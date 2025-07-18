@@ -3,10 +3,10 @@ import { Engine } from '../../dist/cjs/src/Engine.js'
 import { LookupService } from '../LookupService'
 import { TopicManager } from '../TopicManager'
 import { Storage } from '../storage/Storage'
-import { Transaction, Utils, TaggedBEEF, AdmittanceInstructions, STEAK } from '@bsv/sdk'
+import { Transaction, Utils, TaggedBEEF, AdmittanceInstructions, STEAK, MerklePath } from '@bsv/sdk'
 import { Output } from '../Output'
 import { SyncConfiguration } from '../SyncConfiguration'
-import { Advertiser } from '../Advertiser.js'
+import { Advertiser } from '../Advertiser'
 
 const mockChainTracker = {
   isValidRootForHeight: jest.fn(async () => true),

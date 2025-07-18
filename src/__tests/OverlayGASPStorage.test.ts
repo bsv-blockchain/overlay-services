@@ -30,7 +30,7 @@ describe('OverlayGASPStorage', () => {
 
     it('throws error when max nodes are exceeded', async () => {
       overlayStorage.maxNodesInGraph = 1
-      overlayStorage.temporaryGraphNodeRefs['txid123.0'] = { txid: 'txid123', children: [] } as GraphNode
+      overlayStorage.temporaryGraphNodeRefs['txid123.0'] = { txid: 'txid123', children: [], rawTx: '', graphID: 'txid4321.2', outputIndex: 0 } as GraphNode
 
       const mockTx = {
         rawTx: '334455',
@@ -44,19 +44,16 @@ describe('OverlayGASPStorage', () => {
 
   describe('findKnownUTXOs', () => {
     it('should return known UTXOs since a given timestamp', async () => {
-      const mockOutputs = [
-        { txid: 'txid1', outputIndex: 0, score: 1234567890 }, 
-        { txid: 'txid2', outputIndex: 1, score: 1234567890 }
-      ]
-      mockEngine.storage.findUTXOsForTopic.mockResolvedValue(mockOutputs)
+      const mockUTXOs = [{ txid: 'txid1', outputIndex: 0, score: 0 }, { txid: 'txid2', outputIndex: 1, score: 0 }]
+      mockEngine.storage.findUTXOsForTopic.mockResolvedValue(mockUTXOs)
 
       const result = await overlayStorage.findKnownUTXOs(1234567890)
 
       expect(result).toEqual([
-        { txid: 'txid1', outputIndex: 0, score: 1234567890 },
-        { txid: 'txid2', outputIndex: 1, score: 1234567890 }
+        { txid: 'txid1', outputIndex: 0, score: 0 },
+        { txid: 'txid2', outputIndex: 1, score: 0 }
       ])
-      expect(mockEngine.storage.findUTXOsForTopic).toHaveBeenCalledWith('test-topic', 1234567890, undefined)
+      expect(mockEngine.storage.findUTXOsForTopic).toHaveBeenCalledWith('test-topic', 1234567890)
     })
 
     it('should handle errors correctly', async () => {

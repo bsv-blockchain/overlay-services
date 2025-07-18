@@ -27,6 +27,5 @@ export interface Output {
   /** The transaction data for the output */
   beef?: number[]
   blockHeight?: number
-  /** The score/sorting factor for the output (can be timestamp, blocktime, or any other arbitrary sort factor) */
-  score: number
+  score?: number 
 }

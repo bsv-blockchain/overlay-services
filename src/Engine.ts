@@ -2,7 +2,6 @@ import { TopicManager } from './TopicManager.js'
 import { LookupService } from './LookupService.js'
 import { Storage } from './storage/Storage.js'
 import type { Output } from './Output.js'
-import { LookupFormula } from './LookupFormula.js'
 import {
   Transaction,
   ChainTracker,
@@ -684,7 +683,7 @@ export class Engine {
       UTXOList: outputs.map(output => ({
         txid: output.txid,
         outputIndex: output.outputIndex,
-        score: output.score
+        score: output.score ?? 0
       })),
       since: initialRequest.since
     }

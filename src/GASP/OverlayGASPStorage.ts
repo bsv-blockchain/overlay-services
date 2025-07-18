@@ -29,13 +29,12 @@ export class OverlayGASPStorage implements GASPStorage {
    * @param since
    * @returns
    */
-  async findKnownUTXOs (since: number, limit?: number): Promise<GASPOutput[]> {
-    const outputs = await this.engine.storage.findUTXOsForTopic(this.topic, since, limit)
-    
-    return outputs.map(output => ({
+  async findKnownUTXOs (since: number): Promise<GASPOutput[]> {
+    const UTXOs = await this.engine.storage.findUTXOsForTopic(this.topic, since)
+    return UTXOs.map(output => ({
       txid: output.txid,
       outputIndex: output.outputIndex,
-      score: output.score
+      score: output.score ?? 0
     }))
   }
 
@@ -330,5 +329,4 @@ export class OverlayGASPStorage implements GASPStorage {
     const finalTX = hydrator(node)
     return finalTX.toBEEF()
   }
-
 }

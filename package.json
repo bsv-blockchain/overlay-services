@@ -1,6 +1,6 @@
 {
   "name": "@bsv/overlay",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "type": "module",
   "description": "BSV Blockchain Overlay Services Engine",
   "main": "dist/cjs/mod.js",
@@ -40,6 +40,7 @@
     "test:watch": "npm run build && jest --watch",
     "test:coverage": "npm run build && jest --coverage",
     "lint": "ts-standard --fix src/**/*.ts",
+    "lint:ci": "ts-standard src/**/*.ts",
     "build": "tsc -b && tsconfig-to-dual-package tsconfig.cjs.json",
     "dev": "tsc -b -w",
     "prepublish": "npm run build",
@@ -73,7 +74,7 @@
   },
   "dependencies": {
     "@bsv/gasp": "^1.2.0",
-    "@bsv/sdk": "^1.6.10",
+    "@bsv/sdk": "^1.6.16",
     "knex": "^3.1.0"
   }
 }
