@@ -2,7 +2,6 @@ import { TopicManager } from './TopicManager.js'
 import { LookupService } from './LookupService.js'
 import { Storage } from './storage/Storage.js'
 import type { Output } from './Output.js'
-import { LookupFormula } from './LookupFormula.js'
 import {
   Transaction,
   ChainTracker,
@@ -640,7 +639,7 @@ export class Engine {
               true,
               true
             )
-            await gasp.sync()
+            await gasp.sync(endpoint)
 
             this.logger.info(`[GASP SYNC] Sync successful for topic "${topic}" with peer "${endpoint}"`)
           } catch (err) {
@@ -673,7 +672,8 @@ export class Engine {
       UTXOList: UTXOs.map(output => {
         return {
           txid: output.txid,
-          outputIndex: output.outputIndex
+          outputIndex: output.outputIndex,
+          score: output.score ?? 0
         }
       }),
       since: initialRequest.since

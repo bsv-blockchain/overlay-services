@@ -27,4 +27,5 @@ export interface Output {
   /** The transaction data for the output */
   beef?: number[]
   blockHeight?: number
+  score?: number 
 }
