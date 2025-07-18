@@ -35,7 +35,7 @@ All notable changes to this project will be documented in this file. The format 
 ### Changed
 
 - Updated @bsv/sdk and @bsv/gasp-core deps
-- Added score to outputs in the sotrage engine and across all methods which list outputs, to match gasp-core dep.
+- Added score to outputs in the storage engine and across all methods which list outputs, to match gasp-core dep.
 
 ## [1.0.0] - YYYY-MM-DD
 
