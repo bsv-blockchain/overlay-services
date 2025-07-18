@@ -22,7 +22,7 @@ describe('OverlayGASPRemote', () => {
     it('should send a request and return a valid response', async () => {
       const mockRequest: GASPInitialRequest = { version: 1, since: 0 }
       const mockResponse: GASPInitialResponse = {
-        UTXOList: [{ txid: 'txid1', outputIndex: 0 }],
+        UTXOList: [{ txid: 'txid1', outputIndex: 0, score: 0 }],
         since: 1234567890
       };
 

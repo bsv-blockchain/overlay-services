@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. The format 
 ## Table of Contents
 
 - [Unreleased](#unreleased)
+- [1.1.0 - 2025-07-18](#110---2025-07-18)
 - [1.0.0 - YYYY-MM-DD](#100---yyyy-mm-dd)
 
 ## [Unreleased]
@@ -28,6 +29,13 @@ All notable changes to this project will be documented in this file. The format 
 - (Notify of any improvements related to security vulnerabilities or potential risks.)
 
 ---
+
+## [1.1.0] - 2025-07-18
+
+### Changed
+
+- Updated @bsv/sdk and @bsv/gasp-core deps
+- Added score to outputs in the storage engine and across all methods which list outputs, to match gasp-core dep.
 
 ## [1.0.0] - YYYY-MM-DD
 

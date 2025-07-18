@@ -36,7 +36,8 @@ export class OverlayGASPRemote implements GASPRemote {
     return {
       UTXOList: result.UTXOList.map((utxo: any) => ({
         txid: utxo.txid,
-        outputIndex: utxo.outputIndex
+        outputIndex: utxo.outputIndex,
+        score: utxo.score ?? 0
       })),
       since: result.since
     }
