@@ -29,7 +29,7 @@ export class OverlayGASPStorage implements GASPStorage {
    * @param since
    * @returns
    */
-  async findKnownUTXOs (since: number): Promise<Array<GASPOutput>> {
+  async findKnownUTXOs (since: number): Promise<GASPOutput[]> {
     const UTXOs = await this.engine.storage.findUTXOsForTopic(this.topic, since)
     return UTXOs.map(output => ({
       txid: output.txid,

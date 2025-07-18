@@ -40,6 +40,7 @@
     "test:watch": "npm run build && jest --watch",
     "test:coverage": "npm run build && jest --coverage",
     "lint": "ts-standard --fix src/**/*.ts",
+    "lint:ci": "ts-standard src/**/*.ts",
     "build": "tsc -b && tsconfig-to-dual-package tsconfig.cjs.json",
     "dev": "tsc -b -w",
     "prepublish": "npm run build",
