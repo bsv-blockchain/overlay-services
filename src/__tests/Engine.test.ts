@@ -30,7 +30,7 @@ const mockOutput: Output = {
   spent: false,
   outputsConsumed: [],
   consumedBy: [],
-  score: Date.now()
+  score: 1234567890
 }
 
 const invalidHostingUrls = [
