@@ -49,7 +49,10 @@ describe('OverlayGASPStorage', () => {
 
       const result = await overlayStorage.findKnownUTXOs(1234567890)
 
-      expect(result).toEqual(mockUTXOs)
+      expect(result).toEqual([
+        { txid: 'txid1', outputIndex: 0, score: 0 },
+        { txid: 'txid2', outputIndex: 1, score: 0 }
+      ])
       expect(mockEngine.storage.findUTXOsForTopic).toHaveBeenCalledWith('test-topic', 1234567890)
     })
 

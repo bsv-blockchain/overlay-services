@@ -24,6 +24,8 @@ import { SyncConfiguration } from './SyncConfiguration.js'
 import { OverlayGASPRemote } from './GASP/OverlayGASPRemote.js'
 import { OverlayGASPStorage } from './GASP/OverlayGASPStorage.js'
 
+const DEFAULT_GASP_SYNC_LIMIT = 10000
+
 /**
  * An engine for running BSV Overlay Services (topic managers and lookup services).
  */
@@ -354,7 +356,8 @@ export class Engine {
           spent: false,
           beef: taggedBEEF.beef,
           consumedBy: [],
-          outputsConsumed
+          outputsConsumed,
+          score: Date.now()
         })
         this.endTime(`insertNewOutput_${txid.substring(0, 10)}`)
         newUTXOs.push({ txid, outputIndex })
@@ -631,15 +634,23 @@ export class Engine {
           this.logger.info(`[GASP SYNC] Starting sync for topic "${topic}" with peer "${endpoint}"`)
 
           try {
+            // Read the last interaction score from storage
+            const lastInteraction = await this.storage.getLastInteraction(endpoint, topic)
+            
             const gasp = new GASP(
               new OverlayGASPStorage(topic, this),
               new OverlayGASPRemote(endpoint, topic),
-              0,
+              lastInteraction,
               `[GASP Sync of ${topic} with ${endpoint}]`,
               true,
               true
             )
-            await gasp.sync(endpoint)
+            await gasp.sync(endpoint, DEFAULT_GASP_SYNC_LIMIT)
+            
+            // Save the updated last interaction score
+            if (gasp.lastInteraction > lastInteraction) {
+              await this.storage.updateLastInteraction(endpoint, topic, gasp.lastInteraction)
+            }
 
             this.logger.info(`[GASP SYNC] Sync successful for topic "${topic}" with peer "${endpoint}"`)
           } catch (err) {
@@ -666,16 +677,14 @@ export class Engine {
    * @returns A promise that resolves to a GASPInitialResponse containing the list of UTXOs and the provided min block height.
    */
   async provideForeignSyncResponse (initialRequest: GASPInitialRequest, topic: string): Promise<GASPInitialResponse> {
-    const UTXOs = await this.storage.findUTXOsForTopic(topic, initialRequest.since)
+    const outputs = await this.storage.findUTXOsForTopic(topic, initialRequest.since, initialRequest.limit)
 
     return {
-      UTXOList: UTXOs.map(output => {
-        return {
-          txid: output.txid,
-          outputIndex: output.outputIndex,
-          score: output.score ?? 0
-        }
-      }),
+      UTXOList: outputs.map(output => ({
+        txid: output.txid,
+        outputIndex: output.outputIndex,
+        score: output.score ?? 0
+      })),
       since: initialRequest.since
     }
   }

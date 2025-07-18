@@ -38,10 +38,11 @@ export interface Storage {
   /**
    * Finds current UTXOs that have been admitted into a given topic
    * @param topic - The topic for which we want to find Unspent Transaction Outputs (UTXOs).
-   * @param since - Optional parameter indicating the minimum date (timestamp? block height?) to retrieve matching UTXOs from. TODO: We need to decide about which time format to use for synchronization.
+   * @param since - Optional parameter indicating the minimum score value to retrieve matching UTXOs from. This is used for score-based filtering.
+   * @param limit - Optional parameter to limit the number of results returned
    * @returns A promise that resolves to an array of matching UTXOs.
    */
-  findUTXOsForTopic: (topic: string, since?: number, includeBEEF?: boolean) => Promise<Output[]>
+  findUTXOsForTopic: (topic: string, since?: number, limit?: number, includeBEEF?: boolean) => Promise<Output[]>
 
   /**
    * Deletes an output from storage
@@ -99,4 +100,20 @@ export interface Storage {
    * @returns Whether the transaction is already applied
    */
   doesAppliedTransactionExist: (tx: AppliedTransaction) => Promise<boolean>
+
+  /**
+   * Updates the last interaction score for a given host and topic
+   * @param host — The host identifier
+   * @param topic — The topic for which to update the interaction score
+   * @param since — The score value to store
+   */
+  updateLastInteraction: (host: string, topic: string, since: number) => Promise<void>
+
+  /**
+   * Retrieves the last interaction score for a given host and topic
+   * @param host — The host identifier
+   * @param topic — The topic to query
+   * @returns The last interaction score, or 0 if not found
+   */
+  getLastInteraction: (host: string, topic: string) => Promise<number>
 }
