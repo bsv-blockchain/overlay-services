@@ -3,10 +3,10 @@ import { Engine } from '../../dist/cjs/src/Engine.js'
 import { LookupService } from '../LookupService'
 import { TopicManager } from '../TopicManager'
 import { Storage } from '../storage/Storage'
-import { Transaction, Utils, TaggedBEEF, AdmittanceInstructions, STEAK } from '@bsv/sdk'
+import { Transaction, Utils, TaggedBEEF, AdmittanceInstructions, STEAK, MerklePath} from '@bsv/sdk'
 import { Output } from '../Output'
 import { SyncConfiguration } from '../SyncConfiguration'
-import { Advertiser } from '../Advertiser.js'
+import { Advertiser } from '../Advertiser'
 
 const mockChainTracker = {
   isValidRootForHeight: jest.fn(async () => true),
@@ -25,7 +25,7 @@ const mockOutput: Output = {
   outputIndex: 0,
   outputScript: exampleTX.outputs[0].lockingScript.toBinary(),
   topic: 'hello',
-  satoshis: exampleTX.outputs[0].satoshis,
+  satoshis: exampleTX.outputs[0].satoshis as number,
   beef: exampleBeef,
   spent: false,
   outputsConsumed: [],
@@ -242,7 +242,7 @@ describe('BSV Overlay Services Engine', () => {
       outputIndex: 0,
       outputScript: exampleTX.outputs[0].lockingScript.toBinary(),
       topic: 'hello',
-      satoshis: exampleTX.outputs[0].satoshis,
+      satoshis: exampleTX.outputs[0].satoshis as number,
       beef: exampleBeef,
       spent: false,
       outputsConsumed: [],
@@ -258,7 +258,7 @@ describe('BSV Overlay Services Engine', () => {
         outputIndex: 0,
         outputScript: tx.outputs[0].lockingScript.toBinary(),
         topic: 'hello',
-        satoshis: tx.outputs[0].satoshis,
+        satoshis: tx.outputs[0].satoshis as number,
         beef: tx.toBEEF(),
         spent: false,
         outputsConsumed: [],
@@ -307,7 +307,7 @@ describe('BSV Overlay Services Engine', () => {
           outputIndex,
           outputScript: tx.outputs[outputIndex].lockingScript.toBinary(),
           topic: 'hello',
-          satoshis: tx.outputs[outputIndex].satoshis,
+          satoshis: tx.outputs[outputIndex].satoshis as number,
           beef: tx.toBEEF(),
           spent: false,
           outputsConsumed: [],
@@ -347,10 +347,10 @@ describe('BSV Overlay Services Engine', () => {
       */
 
       const tx17d182 = Transaction.fromHexBEEF(beef17d182_4)
-      const tx942620 = tx17d182.inputs[0].sourceTransaction
-      const tx509f5e = tx942620.inputs[0].sourceTransaction
-      const tx877734 = tx509f5e.inputs[0].sourceTransaction
-      const tx37abad = tx877734.inputs[0].sourceTransaction
+      const tx942620 = tx17d182.inputs[0].sourceTransaction as Transaction
+      const tx509f5e = tx942620.inputs[0].sourceTransaction as Transaction
+      const tx877734 = tx509f5e.inputs[0].sourceTransaction as Transaction
+      const tx37abad = tx877734.inputs[0].sourceTransaction as Transaction
 
       const output37abad_0 = addConsumingOutput(tx37abad, 0)
       const output877734_0 = addConsumingOutput(tx877734, 0, output37abad_0)
@@ -358,11 +358,11 @@ describe('BSV Overlay Services Engine', () => {
       const output942620_0 = addConsumingOutput(tx942620, 0, output509f5e_0)
       const output17d182_0 = addConsumingOutput(tx17d182, 0, output942620_0)
 
-      const mp37abad = Transaction.fromHexBEEF(beef37abad_0).merklePath
+      const mp37abad = Transaction.fromHexBEEF(beef37abad_0).merklePath as MerklePath
       await engine.handleNewMerkleProof(txid37abad, mp37abad)
       expect(Object.keys(newBEEF).length).toBe(0)
 
-      const mp877734 = Transaction.fromHexBEEF(beef877734_0).merklePath
+      const mp877734 = Transaction.fromHexBEEF(beef877734_0).merklePath as MerklePath
       await engine.handleNewMerkleProof(txid877734, mp877734)
       expect(newBEEF[`${txid877734}`]).toBe(beef877734_0)
       expect(newBEEF[`${txid509f5e}`].length).toBeGreaterThan(beef509f5e_0.length)
@@ -370,7 +370,7 @@ describe('BSV Overlay Services Engine', () => {
       expect(newBEEF[`${txid17d182}`].length).toBeGreaterThan(beef17d182_0.length)
       expect(Object.keys(newBEEF).length).toBe(4)
 
-      const mp509f5e = Transaction.fromHexBEEF(beef509f5e_0).merklePath
+      const mp509f5e = Transaction.fromHexBEEF(beef509f5e_0).merklePath as MerklePath
       await engine.handleNewMerkleProof(txid509f5e, mp509f5e)
       expect(newBEEF[`${txid877734}`]).toBe(beef877734_0)
       expect(newBEEF[`${txid509f5e}`]).toBe(beef509f5e_0)
@@ -378,7 +378,7 @@ describe('BSV Overlay Services Engine', () => {
       expect(newBEEF[`${txid17d182}`].length).toBeGreaterThan(beef17d182_0.length)
       expect(Object.keys(newBEEF).length).toBe(4)
 
-      const mp942620 = Transaction.fromHexBEEF(beef942620_0).merklePath
+      const mp942620 = Transaction.fromHexBEEF(beef942620_0).merklePath as MerklePath
       await engine.handleNewMerkleProof(txid942620, mp942620)
       expect(newBEEF[`${txid877734}`]).toBe(beef877734_0)
       expect(newBEEF[`${txid509f5e}`]).toBe(beef509f5e_0)
@@ -386,7 +386,7 @@ describe('BSV Overlay Services Engine', () => {
       expect(newBEEF[`${txid17d182}`].length).toBeGreaterThan(beef17d182_0.length)
       expect(Object.keys(newBEEF).length).toBe(4)
 
-      const mp17d182 = Transaction.fromHexBEEF(beef17d182_0).merklePath
+      const mp17d182 = Transaction.fromHexBEEF(beef17d182_0).merklePath as MerklePath
       await engine.handleNewMerkleProof(txid17d182, mp17d182)
       expect(newBEEF[`${txid877734}`]).toBe(beef877734_0)
       expect(newBEEF[`${txid509f5e}`]).toBe(beef509f5e_0)
