@@ -1,4 +1,5 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "types": ["@types/node"],
     "noEmit": true,
@@ -7,6 +8,7 @@
   "include": [
     "./src/**/*.ts",
     ".eslintrc.js",
-    "jest.config.js",
-  ]
+    "jest.config.js"
+  ],
+  "exclude": []
 }

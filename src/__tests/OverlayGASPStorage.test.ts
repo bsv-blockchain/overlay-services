@@ -30,7 +30,8 @@ describe('OverlayGASPStorage', () => {
 
     it('throws error when max nodes are exceeded', async () => {
       overlayStorage.maxNodesInGraph = 1
-      overlayStorage.temporaryGraphNodeRefs['txid123.0'] = { txid: 'txid123', children: [], rawTx: '', graphID: 'txid4321.2', outputIndex: 0 } as GraphNode
+      const graphNode: GraphNode = { txid: 'txid123', children: [], rawTx: '', graphID: 'txid4321.2', outputIndex: 0 }
+      overlayStorage.temporaryGraphNodeRefs['txid123.0'] = graphNode
 
       const mockTx = {
         rawTx: '334455',
@@ -128,32 +129,32 @@ describe('OverlayGASPStorage', () => {
 
   describe('discardGraph', () => {
     it('should discard the graph and its nodes', async () => {
-      overlayStorage.temporaryGraphNodeRefs['txid123.0'] = {
+      const graphNode1: GraphNode = {
         txid: 'txid123',
-        time: Date.now(),
         graphID: 'txid123.0',
         rawTx: 'rawTxData',
         outputIndex: 0,
         children: [],
         parent: undefined
-      } as GraphNode
+      }
+      overlayStorage.temporaryGraphNodeRefs['txid123.0'] = graphNode1
 
-      overlayStorage.temporaryGraphNodeRefs['txid124.0'] = {
+      const parentNode: GraphNode = {
+        txid: 'txid123',
+        graphID: 'txid123.0',
+        rawTx: 'rawTxData',
+        outputIndex: 0,
+        children: []
+      }
+      const graphNode2: GraphNode = {
         txid: 'txid124',
-        time: Date.now(),
         graphID: 'txid123.0',
         rawTx: 'rawTxData',
         outputIndex: 1,
         children: [],
-        parent: {
-          txid: 'txid123',
-          time: Date.now(),
-          graphID: 'txid123.0',
-          rawTx: 'rawTxData',
-          outputIndex: 0,
-          children: []
-        } as GraphNode
-      } as GraphNode
+        parent: parentNode
+      }
+      overlayStorage.temporaryGraphNodeRefs['txid124.0'] = graphNode2
 
       await overlayStorage.discardGraph('txid123.0')
 

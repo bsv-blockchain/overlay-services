@@ -81,7 +81,7 @@ export class OverlayGASPStorage implements GASPStorage {
     const parsedTx = Transaction.fromHex(tx.rawTx)
     if (tx.proof === undefined) {
       for (const input of parsedTx.inputs) {
-        response.requestedInputs[`${input.sourceTXID}.${input.sourceOutputIndex}`] = {
+        response.requestedInputs[`${input.sourceTXID ?? ''}.${input.sourceOutputIndex}`] = {
           metadata: false
         }
       }
@@ -221,12 +221,13 @@ export class OverlayGASPStorage implements GASPStorage {
       // For any input to this transaction, see if it's a valid coin that's admitted. If so, it's a previous coin.
       const previousCoins: number[] = []
       const tx = Transaction.fromBEEF(beef)
-      for (const inputIndex in tx.inputs) {
-        const input = tx.inputs[inputIndex]
-        const sourceTXID = input.sourceTXID || input.sourceTransaction?.id('hex')
-        const coin = `${sourceTXID}.${input.sourceOutputIndex}`
-        if (coins.has(coin)) {
-          previousCoins.push(Number(inputIndex))
+      for (const [inputIndex, input] of tx.inputs.entries()) {
+        const sourceTXID = input.sourceTXID ?? input.sourceTransaction?.id('hex')
+        if (sourceTXID != null && sourceTXID !== '') {
+          const coin = `${sourceTXID}.${input.sourceOutputIndex}`
+          if (coins.has(coin)) {
+            previousCoins.push(Number(inputIndex))
+          }
         }
       }
       const admittanceInstructions = await this.engine.managers[this.topic].identifyAdmissibleOutputs(beef, previousCoins)
@@ -294,7 +295,7 @@ export class OverlayGASPStorage implements GASPStorage {
 
     // Start the hydrator with the root node
     const foundRoot = this.temporaryGraphNodeRefs[graphID]
-    if (!foundRoot) {
+    if (foundRoot == null) {
       throw new Error('Unable to find root node in graph for finalization!')
     }
     hydrator(foundRoot)
@@ -310,15 +311,14 @@ export class OverlayGASPStorage implements GASPStorage {
     // Given a node, hydrate its merkle proof or all inputs, returning a reference to the hydrated node's Transaction object
     const hydrator = (node: GraphNode): Transaction => {
       const tx = Transaction.fromHex(node.rawTx)
-      if (node.proof) {
+      if (node.proof != null && node.proof !== '') {
         tx.merklePath = MerklePath.fromHex(node.proof)
         return tx // Transaction with proof, end of the line.
       }
       // For each input, look it up and recurse.
-      for (const inputIndex in tx.inputs) {
-        const input = tx.inputs[inputIndex]
-        const foundNode = this.temporaryGraphNodeRefs[`${input.sourceTXID}.${input.sourceOutputIndex}`]
-        if (!foundNode) {
+      for (const [inputIndex, input] of tx.inputs.entries()) {
+        const foundNode = this.temporaryGraphNodeRefs[`${input.sourceTXID ?? ''}.${input.sourceOutputIndex}`]
+        if (foundNode == null) {
           throw new Error('Required input node for unproven parent not found in temporary graph store. Ensure, for every parent of any given already-proven node (kept for Overlay-specific historical reasons), that a proof is also provided on those inputs. While implicitly they are valid by virtue of their descendents being proven in the blockchain, BEEF serialization will still fail when winding forward the topical UTXO set histories during sync.')
         }
         tx.inputs[inputIndex].sourceTransaction = hydrator(foundNode)
