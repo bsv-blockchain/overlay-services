@@ -30,7 +30,7 @@ describe('OverlayGASPStorage', () => {
 
     it('throws error when max nodes are exceeded', async () => {
       overlayStorage.maxNodesInGraph = 1
-      overlayStorage.temporaryGraphNodeRefs['txid123.0'] = { txid: 'txid123', children: [] } as GraphNode
+      overlayStorage.temporaryGraphNodeRefs['txid123.0'] = { txid: 'txid123', children: [], rawTx: '', graphID: 'txid4321.2', outputIndex: 0 } as GraphNode
 
       const mockTx = {
         rawTx: '334455',
@@ -44,7 +44,7 @@ describe('OverlayGASPStorage', () => {
 
   describe('findKnownUTXOs', () => {
     it('should return known UTXOs since a given timestamp', async () => {
-      const mockUTXOs = [{ txid: 'txid1', outputIndex: 0 }, { txid: 'txid2', outputIndex: 1 }]
+      const mockUTXOs = [{ txid: 'txid1', outputIndex: 0, score: 0 }, { txid: 'txid2', outputIndex: 1, score: 0 }]
       mockEngine.storage.findUTXOsForTopic.mockResolvedValue(mockUTXOs)
 
       const result = await overlayStorage.findKnownUTXOs(1234567890)
