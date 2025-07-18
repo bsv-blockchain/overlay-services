@@ -33,7 +33,7 @@ If applicable, add screenshots or stack traces to help explain the issue.
 
 - OS: [e.g. MacOS, Windows]
 - Node version: [e.g. 12.20]
-- `@bsv/identity-react` version: [e.g. 1.2.3]
+- `@bsv/overlay` version: [e.g. 1.2.3]
 
 ## Additional Information
 
