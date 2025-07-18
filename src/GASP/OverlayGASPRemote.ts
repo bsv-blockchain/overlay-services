@@ -102,7 +102,7 @@ export class OverlayGASPRemote implements GASPRemote {
 
   // Only used when supporting bidirectional sync.
   // Overlay services does not support this.
-  async submitNode (node: GASPNode): Promise<void | GASPNodeResponse> {
+  async submitNode (node: GASPNode): Promise<GASPNodeResponse | undefined> {
     throw new Error('Node submission not supported!')
   }
 }
