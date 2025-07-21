@@ -4,6 +4,8 @@ import { up as addBlockHeightColumnUp, down as addBlockHeightColumnDown } from '
 import { up as addTransactionsTableUp, down as addTransactionsTableDown } from './migrations/2024-07-17-001-transactions.js'
 import { up as addedIndexesUp, down as addedIndexesDown } from './migrations/2024-07-18-001-indexes.js'
 import { up as enlargeUp, down as enlargeDown } from './migrations/2025-05-28-001-enlarge.js'
+import { up as gaspPaginationSupportUp, down as gaspPaginationSupportDown } from './migrations/2025-06-25-001-gasp-pagination-support.js'
+
 
 
 /**
@@ -19,7 +21,8 @@ const allMigrations: Migration[] = [
   { up: addBlockHeightColumnUp, down: addBlockHeightColumnDown },
   { up: addTransactionsTableUp, down: addTransactionsTableDown },
   { up: addedIndexesUp, down: addedIndexesDown },
-  { up: enlargeUp, down: enlargeDown }
+  { up: enlargeUp, down: enlargeDown },
+  { up: gaspPaginationSupportUp, down: gaspPaginationSupportDown }
 ]
 
 export default allMigrations
