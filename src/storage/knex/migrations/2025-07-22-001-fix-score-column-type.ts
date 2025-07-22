@@ -18,7 +18,7 @@ export async function down (knex: Knex): Promise<void> {
   
   if (hasScoreColumn) {
     await knex.schema.table('outputs', table => {
-      table.float('score').notNullable().defaultTo(0).alter()
+      table.float('score', 8, 2).notNullable().defaultTo(0).alter()
     })
   }
 }
