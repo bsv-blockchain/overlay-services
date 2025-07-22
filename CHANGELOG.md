@@ -5,8 +5,9 @@ All notable changes to this project will be documented in this file. The format 
 ## Table of Contents
 
 - [Unreleased](#unreleased)
-- [1.1.0 - 2025-07-18](#110---2025-07-18)
-- [1.0.0 - YYYY-MM-DD](#100---yyyy-mm-dd)
+- [0.4.4 - 2025-07-22](#111---2025-07-22)
+- [0.4.3 - 2025-07-18](#110---2025-07-18)
+- [0.0.1 - YYYY-MM-DD](#100---yyyy-mm-dd)
 
 ## [Unreleased]
 
@@ -30,14 +31,22 @@ All notable changes to this project will be documented in this file. The format 
 
 ---
 
-## [1.1.0] - 2025-07-18
+## [0.4.4] - 2025-07-22
+
+### Changed
+
+- score column type changed from float to bigint to handle large timestamp values
+
+---
+
+## [0.4.3] - 2025-07-18
 
 ### Changed
 
 - Updated @bsv/sdk and @bsv/gasp-core deps
 - Added score to outputs in the storage engine and across all methods which list outputs, to match gasp-core dep.
 
-## [1.0.0] - YYYY-MM-DD
+## [0.0.1] - YYYY-MM-DD
 
 ### Added
 - Initial release of the BSV Blockchain Overlay Services Engine.
