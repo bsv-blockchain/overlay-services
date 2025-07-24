@@ -47,8 +47,9 @@ export class Engine {
    * @param {boolean} throwOnBroadcastFailure - Enables / disables throwing an error when a transaction broadcast failure is detected.
    * @param {OverlayBroadcastFacilitator} overlayBroadcastFacilitator - Facilitator for propagation to other Overlay Services.
    * @param {typeof console} logger - The place where log entries are written.
+   * @param {boolean} suppressDefaultSyncAdvertisements - Whether to suppress the default (SHIP/SLAP) sync advertisements.
    */
-  constructor (
+  constructor(
     public managers: { [key: string]: TopicManager },
     public lookupServices: { [key: string]: LookupService },
     public storage: Storage,
@@ -63,7 +64,8 @@ export class Engine {
     public logPrefix = '[OVERLAY_ENGINE] ',
     public throwOnBroadcastFailure = false,
     public overlayBroadcastFacilitator: OverlayBroadcastFacilitator = new HTTPSOverlayBroadcastFacilitator(),
-    public logger: typeof console = console
+    public logger: typeof console = console,
+    public suppressDefaultSyncAdvertisements = true
   ) {
     // To encourage synchronization of overlay services, the SHIP sync strategy is used by default for all overlay topics, except for 'tm_ship' and 'tm_slap'.
     // For these two topics, any existing trackers are combined with the provided shipTrackers and slapTrackers omitting any duplicates.
@@ -98,13 +100,13 @@ export class Engine {
   }
 
   // Helper functions for logging timings
-  private startTime (label: string): void {
+  private startTime(label: string): void {
     if (this.logTime) {
       this.logger.time(`${this.logPrefix} ${label}`)
     }
   }
 
-  private endTime (label: string): void {
+  private endTime(label: string): void {
     if (this.logTime) {
       this.logger.timeEnd(`${this.logPrefix} ${label}`)
     }
@@ -121,7 +123,7 @@ export class Engine {
    *
    * @returns {Promise<STEAK>} The submitted transaction execution acknowledgement
    */
-  async submit (taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: 'historical-tx' | 'current-tx' = 'current-tx', offChainValues?: number[]): Promise<STEAK> {
+  async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: 'historical-tx' | 'current-tx' = 'current-tx', offChainValues?: number[]): Promise<STEAK> {
     for (const t of taggedBEEF.topics) {
       if (this.managers[t] === undefined || this.managers[t] === null) {
         throw new Error(`This server does not support this topic: ${t}`)
@@ -455,7 +457,7 @@ export class Engine {
    * @param LookupQuestion — The question to ask the Overlay Services Engine
    * @returns The answer to the question
    */
-  async lookup (lookupQuestion: LookupQuestion): Promise<LookupAnswer> {
+  async lookup(lookupQuestion: LookupQuestion): Promise<LookupAnswer> {
     // Validate a lookup service for the provider is found
     const lookupService = this.lookupServices[lookupQuestion.service]
     if (lookupService === undefined || lookupService === null) throw new Error(`Lookup service not found for provider: ${lookupQuestion.service} `)
@@ -508,7 +510,7 @@ export class Engine {
    * @throws Will throw an error if there are issues during the advertisement synchronization process.
    * @returns {Promise<void>} A promise that resolves when the synchronization process is complete.
    */
-  async syncAdvertisements (): Promise<void> {
+  async syncAdvertisements(): Promise<void> {
     if (
       this.advertiser === undefined ||
       typeof this.hostingURL !== 'string' ||
@@ -520,8 +522,14 @@ export class Engine {
     const advertiser = this.advertiser
 
     // Step 1: Retrieve Current Configuration
-    const configuredTopics = Object.keys(this.managers)
-    const configuredServices = Object.keys(this.lookupServices)
+    let configuredTopics = Object.keys(this.managers)
+    let configuredServices = Object.keys(this.lookupServices)
+
+    // Filter out default SHIP/SLAP topics/services if suppressDefaultSyncAdvertisements is true
+    if (this.suppressDefaultSyncAdvertisements === true) {
+      configuredTopics = configuredTopics.filter(topic => topic !== 'tm_ship' && topic !== 'tm_slap')
+      configuredServices = configuredServices.filter(service => service !== 'ls_ship' && service !== 'ls_slap')
+    }
 
     // Step 2: Fetch Existing Advertisements
     const currentSHIPAdvertisements = await advertiser.findAllAdvertisements('SHIP')
@@ -574,7 +582,7 @@ export class Engine {
    *
    * @throws Error if the overlay service engine is not configured for topical synchronization.
    */
-  async startGASPSync (): Promise<void> {
+  async startGASPSync(): Promise<void> {
     if (this.syncConfiguration === undefined) {
       throw new Error('Overlay Service Engine not configured for topical synchronization!')
     }
@@ -636,7 +644,7 @@ export class Engine {
           try {
             // Read the last interaction score from storage
             const lastInteraction = await this.storage.getLastInteraction(endpoint, topic)
-            
+
             const gasp = new GASP(
               new OverlayGASPStorage(topic, this),
               new OverlayGASPRemote(endpoint, topic),
@@ -646,7 +654,7 @@ export class Engine {
               true
             )
             await gasp.sync(endpoint, DEFAULT_GASP_SYNC_LIMIT)
-            
+
             // Save the updated last interaction score
             if (gasp.lastInteraction > lastInteraction) {
               await this.storage.updateLastInteraction(endpoint, topic, gasp.lastInteraction)
@@ -676,7 +684,7 @@ export class Engine {
    * @param topic - The topic for which UTXOs are being requested.
    * @returns A promise that resolves to a GASPInitialResponse containing the list of UTXOs and the provided min block height.
    */
-  async provideForeignSyncResponse (initialRequest: GASPInitialRequest, topic: string): Promise<GASPInitialResponse> {
+  async provideForeignSyncResponse(initialRequest: GASPInitialRequest, topic: string): Promise<GASPInitialResponse> {
     const outputs = await this.storage.findUTXOsForTopic(topic, initialRequest.since, initialRequest.limit)
 
     return {
@@ -698,7 +706,7 @@ export class Engine {
    * @returns A promise that resolves to a GASPNode containing the raw transaction and other optional data.
    * @throws An error if no output is found for the given transaction ID and output index.
    */
-  async provideForeignGASPNode (graphID: string, txid: string, outputIndex: number): Promise<GASPNode> {
+  async provideForeignGASPNode(graphID: string, txid: string, outputIndex: number): Promise<GASPNode> {
     const hydrator = async (output: Output | null): Promise<GASPNode> => {
       if (output?.beef === undefined) {
         throw new Error('No matching output found!')
@@ -776,7 +784,7 @@ export class Engine {
    *
    * @returns {Promise<Output | undefined>} - A promise that resolves to the output history if found, or undefined if not.
    */
-  async getUTXOHistory (
+  async getUTXOHistory(
     output: Output,
     historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number,
     currentDepth = 0
@@ -857,7 +865,7 @@ export class Engine {
    * @param output - The UTXO to be deleted.
    * @returns {Promise<void>} - A promise that resolves when the deletion process is complete.
    */
-  private async deleteUTXODeep (output: Output): Promise<void> {
+  private async deleteUTXODeep(output: Output): Promise<void> {
     try {
       // Delete the current output IFF there are no references to it
       if (output.consumedBy.length === 0) {
@@ -913,7 +921,7 @@ export class Engine {
    * @param txid BE hex string double hash of transaction proven by proof.
    * @param proof for txid
    */
-  private updateInputProofs (tx: Transaction, txid: string, proof: MerklePath): void {
+  private updateInputProofs(tx: Transaction, txid: string, proof: MerklePath): void {
     if (tx.merklePath !== undefined) {
       // Update the merkle path to handle potential reorgs
       tx.merklePath = proof
@@ -938,7 +946,7 @@ export class Engine {
    * @param txid - The txid for which proof is a valid merkle path.
    * @param proof - The merklePath proving txid is a mined transaction hash
    */
-  private async updateMerkleProof (output: Output, txid: string, proof: MerklePath): Promise<void> {
+  private async updateMerkleProof(output: Output, txid: string, proof: MerklePath): Promise<void> {
     if (output.beef === undefined) {
       throw new Error('Output must have associated transaction BEEF!')
     }
@@ -972,7 +980,7 @@ export class Engine {
    * @param proof - Merkle proof containing the Merkle path and other relevant data to verify the transaction.
    * @param blockHeight - The block height associated with the incoming merkle proof.
    */
-  async handleNewMerkleProof (txid: string, proof: MerklePath, blockHeight?: number): Promise<void> {
+  async handleNewMerkleProof(txid: string, proof: MerklePath, blockHeight?: number): Promise<void> {
     const outputs = await this.storage.findOutputsForTransaction(txid, true)
 
     if (outputs === undefined || outputs.length === 0) {
@@ -995,7 +1003,7 @@ export class Engine {
    * @public
    * @returns {Promise<Record<string, { name: string; shortDescription: string; iconURL?: string; version?: string; informationURL?: string; }>>} - Supported topic managers and their metadata
    */
-  async listTopicManagers (): Promise<Record<string, {
+  async listTopicManagers(): Promise<Record<string, {
     name: string
     shortDescription: string
     iconURL?: string
@@ -1028,7 +1036,7 @@ export class Engine {
    * @public
    * @returns {Promise<Record<string, { name: string; shortDescription: string; iconURL?: string; version?: string; informationURL?: string; }>>} - Supported lookup services and their metadata
    */
-  async listLookupServiceProviders (): Promise<Record<string, {
+  async listLookupServiceProviders(): Promise<Record<string, {
     name: string
     shortDescription: string
     iconURL?: string
@@ -1061,7 +1069,7 @@ export class Engine {
    * @public
    * @returns {Promise<string>} - the documentation for the topic manager
    */
-  async getDocumentationForTopicManager (manager: any): Promise<string> {
+  async getDocumentationForTopicManager(manager: any): Promise<string> {
     const documentation = await this.managers[manager]?.getDocumentation?.()
     return documentation !== undefined ? documentation : 'No documentation found!'
   }
@@ -1071,7 +1079,7 @@ export class Engine {
    * @public
    * @returns {Promise<string>} -  the documentation for the lookup service
    */
-  async getDocumentationForLookupServiceProvider (provider: any): Promise<string> {
+  async getDocumentationForLookupServiceProvider(provider: any): Promise<string> {
     const documentation = await this.lookupServices[provider]?.getDocumentation?.()
     return documentation !== undefined ? documentation : 'No documentation found!'
   }
@@ -1086,7 +1094,7 @@ export class Engine {
    * @param url - The URL string to validate
    * @returns {boolean} - Returns `false` if the URL violates any of the conditions `true` otherwise
    */
-  private isValidUrl (url: string): boolean {
+  private isValidUrl(url: string): boolean {
     try {
       const parsedUrl = new URL(url)
 
