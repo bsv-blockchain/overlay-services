@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. The format 
 ## Table of Contents
 
 - [Unreleased](#unreleased)
+- [0.4.5 - 2025-07-24](#111---2025-07-24)
 - [0.4.4 - 2025-07-22](#111---2025-07-22)
 - [0.4.3 - 2025-07-18](#110---2025-07-18)
 - [0.0.1 - YYYY-MM-DD](#100---yyyy-mm-dd)
@@ -28,6 +29,11 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Security
 - (Notify of any improvements related to security vulnerabilities or potential risks.)
+
+---
+
+### Added
+- Support suppressing ship/slap advertisements.
 
 ---
 

@@ -12,6 +12,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 | [AppliedTransaction](#interface-appliedtransaction) |
 | [GraphNode](#interface-graphnode) |
 | [LookupService](#interface-lookupservice) |
+| [LookupServiceMetaData](#interface-lookupservicemetadata) |
+| [Output](#interface-output) |
 | [Storage](#interface-storage) |
 | [TopicManager](#interface-topicmanager) |
 
@@ -19,14 +21,508 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 ---
 
+### Interface: Advertisement
+
+```ts
+export interface Advertisement {
+    protocol: "SHIP" | "SLAP";
+    identityKey: string;
+    domain: string;
+    topicOrService: string;
+    beef?: number[];
+    outputIndex?: number;
+}
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Interface: AdvertisementData
+
+```ts
+export interface AdvertisementData {
+    protocol: "SHIP" | "SLAP";
+    topicOrServiceName: string;
+}
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Interface: Advertiser
+
+Interface for managing SHIP and SLAP advertisements.
+Provides methods for creating, finding, and revoking advertisements.
+
+```ts
+export interface Advertiser {
+    createAdvertisements: (adsData: AdvertisementData[]) => Promise<TaggedBEEF>;
+    findAllAdvertisements: (protocol: "SHIP" | "SLAP") => Promise<Advertisement[]>;
+    revokeAdvertisements: (advertisements: Advertisement[]) => Promise<TaggedBEEF>;
+    parseAdvertisement: (outputScript: Script) => Advertisement;
+}
+```
+
+See also: [Advertisement](#interface-advertisement), [AdvertisementData](#interface-advertisementdata)
+
+<details>
+
+<summary>Interface Advertiser Details</summary>
+
+#### Property createAdvertisements
+
+Creates a new SHIP/SLAP advertisement for a given topic.
+
+```ts
+createAdvertisements: (adsData: AdvertisementData[]) => Promise<TaggedBEEF>
+```
+See also: [AdvertisementData](#interface-advertisementdata)
+
+#### Property findAllAdvertisements
+
+Finds all SHIP/SLAP advertisements.
+
+```ts
+findAllAdvertisements: (protocol: "SHIP" | "SLAP") => Promise<Advertisement[]>
+```
+See also: [Advertisement](#interface-advertisement)
+
+#### Property parseAdvertisement
+
+Parses an output script to extract an advertisement.
+
+```ts
+parseAdvertisement: (outputScript: Script) => Advertisement
+```
+See also: [Advertisement](#interface-advertisement)
+
+#### Property revokeAdvertisements
+
+Revokes an existing advertisement, either SHIP or SLAP.
+
+```ts
+revokeAdvertisements: (advertisements: Advertisement[]) => Promise<TaggedBEEF>
+```
+See also: [Advertisement](#interface-advertisement)
+
+</details>
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Interface: AppliedTransaction
+
+Represents a transaction that has been applied to a topic.
+
+```ts
+export interface AppliedTransaction {
+    txid: string;
+    topic: string;
+}
+```
+
+<details>
+
+<summary>Interface AppliedTransaction Details</summary>
+
+#### Property topic
+
+Output index of the applied transaction
+
+```ts
+topic: string
+```
+
+#### Property txid
+
+TXID of the applied transaction
+
+```ts
+txid: string
+```
+
+</details>
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Interface: GraphNode
+
+Represents a node in the temporary graph.
+
+```ts
+export interface GraphNode {
+    txid: string;
+    graphID: string;
+    rawTx: string;
+    outputIndex: number;
+    spentBy?: string;
+    proof?: string;
+    txMetadata?: string;
+    outputMetadata?: string;
+    inputs?: Record<string, {
+        hash: string;
+    }> | undefined;
+    children: GraphNode[];
+    parent?: GraphNode;
+}
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Interface: LookupService
+
+```ts
+export interface LookupService {
+    readonly admissionMode: AdmissionMode;
+    readonly spendNotificationMode: SpendNotificationMode;
+    outputAdmittedByTopic: (payload: OutputAdmittedByTopic) => Promise<void> | void;
+    outputSpent?: (payload: OutputSpent) => Promise<void> | void;
+    outputNoLongerRetainedInHistory?: (txid: string, outputIndex: number, topic: string) => Promise<void> | void;
+    outputEvicted: (txid: string, outputIndex: number) => Promise<void> | void;
+    lookup: (question: LookupQuestion) => Promise<LookupFormula>;
+    getDocumentation: () => Promise<string>;
+    getMetaData: () => Promise<LookupServiceMetaData>;
+}
+```
+
+See also: [AdmissionMode](#type-admissionmode), [LookupFormula](#type-lookupformula), [LookupServiceMetaData](#interface-lookupservicemetadata), [OutputAdmittedByTopic](#type-outputadmittedbytopic), [OutputSpent](#type-outputspent), [SpendNotificationMode](#type-spendnotificationmode)
+
+<details>
+
+<summary>Interface LookupService Details</summary>
+
+#### Property outputAdmittedByTopic
+
+Invoked when a Topic Manager admits a new UTXO.
+The payload shape depends on this.admissionMode.
+
+```ts
+outputAdmittedByTopic: (payload: OutputAdmittedByTopic) => Promise<void> | void
+```
+See also: [OutputAdmittedByTopic](#type-outputadmittedbytopic)
+
+#### Property outputEvicted
+
+LEGAL EVICTION:
+Permanently remove the referenced UTXO from all indices maintained by the
+Lookup Service.  After eviction the service MUST NOT reference the output
+in any future lookup answer.
+
+```ts
+outputEvicted: (txid: string, outputIndex: number) => Promise<void> | void
+```
+
+#### Property outputNoLongerRetainedInHistory
+
+Called when a Topic Manager decides that **historical retention** of the
+specified UTXO is no longer required.
+
+```ts
+outputNoLongerRetainedInHistory?: (txid: string, outputIndex: number, topic: string) => Promise<void> | void
+```
+
+#### Property outputSpent
+
+Invoked when a previously-admitted UTXO is spent.
+The payload shape depends on this.spendNotificationMode.
+
+```ts
+outputSpent?: (payload: OutputSpent) => Promise<void> | void
+```
+See also: [OutputSpent](#type-outputspent)
+
+</details>
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Interface: LookupServiceMetaData
+
+```ts
+export interface LookupServiceMetaData {
+    name: string;
+    shortDescription: string;
+    iconURL?: string;
+    version?: string;
+    informationURL?: string;
+}
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Interface: Output
+
+Represents an output to be tracked by the Overlay Services Engine
+
+```ts
+export interface Output {
+    txid: string;
+    outputIndex: number;
+    outputScript: number[];
+    satoshis: number;
+    topic: string;
+    spent: boolean;
+    outputsConsumed: Array<{
+        txid: string;
+        outputIndex: number;
+    }>;
+    consumedBy: Array<{
+        txid: string;
+        outputIndex: number;
+    }>;
+    beef?: number[];
+    blockHeight?: number;
+    score?: number;
+}
+```
+
+<details>
+
+<summary>Interface Output Details</summary>
+
+#### Property beef
+
+The transaction data for the output
+
+```ts
+beef?: number[]
+```
+
+#### Property consumedBy
+
+Outputs consuming this output
+
+```ts
+consumedBy: Array<{
+    txid: string;
+    outputIndex: number;
+}>
+```
+
+#### Property outputIndex
+
+index of the output
+
+```ts
+outputIndex: number
+```
+
+#### Property outputScript
+
+script of the output
+
+```ts
+outputScript: number[]
+```
+
+#### Property outputsConsumed
+
+Outputs consumed by the transaction associated with the output
+
+```ts
+outputsConsumed: Array<{
+    txid: string;
+    outputIndex: number;
+}>
+```
+
+#### Property satoshis
+
+number of satoshis in the output
+
+```ts
+satoshis: number
+```
+
+#### Property spent
+
+Whether the output is spent
+
+```ts
+spent: boolean
+```
+
+#### Property topic
+
+topic to which the output belongs
+
+```ts
+topic: string
+```
+
+#### Property txid
+
+TXID of the output
+
+```ts
+txid: string
+```
+
+</details>
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Interface: Storage
+
+Defines the Storage Engine interface used internally by the Overlay Services Engine.
+
+```ts
+export interface Storage {
+    insertOutput: (utxo: Output) => Promise<void>;
+    findOutput: (txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF?: boolean) => Promise<Output | null>;
+    findOutputsForTransaction: (txid: string, includeBEEF?: boolean) => Promise<Output[]>;
+    findUTXOsForTopic: (topic: string, since?: number, limit?: number, includeBEEF?: boolean) => Promise<Output[]>;
+    deleteOutput: (txid: string, outputIndex: number, topic: string) => Promise<void>;
+    markUTXOAsSpent: (txid: string, outputIndex: number, topic: string) => Promise<void>;
+    updateConsumedBy: (txid: string, outputIndex: number, topic: string, consumedBy: Array<{
+        txid: string;
+        outputIndex: number;
+    }>) => Promise<void>;
+    updateTransactionBEEF: (txid: string, beef: number[]) => Promise<void>;
+    updateOutputBlockHeight?: (txid: string, outputIndex: number, topic: string, blockHeight: number) => Promise<void>;
+    insertAppliedTransaction: (tx: AppliedTransaction) => Promise<void>;
+    doesAppliedTransactionExist: (tx: AppliedTransaction) => Promise<boolean>;
+    updateLastInteraction: (host: string, topic: string, since: number) => Promise<void>;
+    getLastInteraction: (host: string, topic: string) => Promise<number>;
+}
+```
+
+See also: [AppliedTransaction](#interface-appliedtransaction), [Output](#interface-output)
+
+<details>
+
+<summary>Interface Storage Details</summary>
+
+#### Property deleteOutput
+
+Deletes an output from storage
+
+```ts
+deleteOutput: (txid: string, outputIndex: number, topic: string) => Promise<void>
+```
+
+#### Property doesAppliedTransactionExist
+
+Checks if a duplicate transaction exists
+
+```ts
+doesAppliedTransactionExist: (tx: AppliedTransaction) => Promise<boolean>
+```
+See also: [AppliedTransaction](#interface-appliedtransaction)
+
+#### Property findOutput
+
+Finds an output from storage
+
+```ts
+findOutput: (txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF?: boolean) => Promise<Output | null>
+```
+See also: [Output](#interface-output)
+
+#### Property findOutputsForTransaction
+
+Finds outputs with a matching transaction ID from storage
+
+```ts
+findOutputsForTransaction: (txid: string, includeBEEF?: boolean) => Promise<Output[]>
+```
+See also: [Output](#interface-output)
+
+#### Property findUTXOsForTopic
+
+Finds current UTXOs that have been admitted into a given topic
+
+```ts
+findUTXOsForTopic: (topic: string, since?: number, limit?: number, includeBEEF?: boolean) => Promise<Output[]>
+```
+See also: [Output](#interface-output)
+
+#### Property getLastInteraction
+
+Retrieves the last interaction score for a given host and topic
+
+```ts
+getLastInteraction: (host: string, topic: string) => Promise<number>
+```
+
+#### Property insertAppliedTransaction
+
+Inserts record of the applied transaction
+
+```ts
+insertAppliedTransaction: (tx: AppliedTransaction) => Promise<void>
+```
+See also: [AppliedTransaction](#interface-appliedtransaction)
+
+#### Property insertOutput
+
+Adds a new output to storage
+
+```ts
+insertOutput: (utxo: Output) => Promise<void>
+```
+See also: [Output](#interface-output)
+
+#### Property markUTXOAsSpent
+
+Updates a UTXO as spent
+
+```ts
+markUTXOAsSpent: (txid: string, outputIndex: number, topic: string) => Promise<void>
+```
+
+#### Property updateConsumedBy
+
+Updates which outputs are consumed by this output
+
+```ts
+updateConsumedBy: (txid: string, outputIndex: number, topic: string, consumedBy: Array<{
+    txid: string;
+    outputIndex: number;
+}>) => Promise<void>
+```
+
+#### Property updateLastInteraction
+
+Updates the last interaction score for a given host and topic
+
+```ts
+updateLastInteraction: (host: string, topic: string, since: number) => Promise<void>
+```
+
+#### Property updateOutputBlockHeight
+
+Updates the block height on an output
+
+```ts
+updateOutputBlockHeight?: (txid: string, outputIndex: number, topic: string, blockHeight: number) => Promise<void>
+```
+
+#### Property updateTransactionBEEF
+
+Updates the beef data for a transaction
+
+```ts
+updateTransactionBEEF: (txid: string, beef: number[]) => Promise<void>
+```
+
+</details>
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
 ### Interface: TopicManager
 
 Defines a Topic Manager interface that can be implemented for specific use-cases
 
 ```ts
 export interface TopicManager {
-    identifyAdmissibleOutputs: (beef: number[], previousCoins: number[]) => Promise<AdmittanceInstructions>;
-    identifyNeededInputs?: (beef: number[]) => Promise<Array<{
+    identifyAdmissibleOutputs: (beef: number[], previousCoins: number[], offChainValues?: number[]) => Promise<AdmittanceInstructions>;
+    identifyNeededInputs?: (beef: number[], offChainValues?: number[]) => Promise<Array<{
         txid: string;
         outputIndex: number;
     }>>;
@@ -74,7 +570,7 @@ Accepts the transaction in BEEF format and an array of those input indices which
 The transaction's BEEF structure will always contain the transactions associated with previous coins for reference (if any), regardless of whether the current transaction was directly proven.
 
 ```ts
-identifyAdmissibleOutputs: (beef: number[], previousCoins: number[]) => Promise<AdmittanceInstructions>
+identifyAdmissibleOutputs: (beef: number[], previousCoins: number[], offChainValues?: number[]) => Promise<AdmittanceInstructions>
 ```
 
 #### Property identifyNeededInputs
@@ -82,364 +578,13 @@ identifyAdmissibleOutputs: (beef: number[], previousCoins: number[]) => Promise<
 Identifies and returns the inputs needed to anchor any topical outputs from this transaction to their associated previous history.
 
 ```ts
-identifyNeededInputs?: (beef: number[]) => Promise<Array<{
+identifyNeededInputs?: (beef: number[], offChainValues?: number[]) => Promise<Array<{
     txid: string;
     outputIndex: number;
 }>>
 ```
 
 </details>
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Interface: LookupService
-
-Defines a Lookup Service interface to be implemented for specific use-cases
-
-```ts
-export interface LookupService {
-    outputAdded?: (txid: string, outputIndex: number, outputScript: Script, topic: string) => Promise<void>;
-    outputSpent?: (txid: string, outputIndex: number, topic: string) => Promise<void>;
-    outputDeleted?: (txid: string, outputIndex: number, topic: string) => Promise<void>;
-    lookup: (question: LookupQuestion) => Promise<LookupAnswer | LookupFormula>;
-    getDocumentation: () => Promise<string>;
-    getMetaData: () => Promise<{
-        name: string;
-        shortDescription: string;
-        iconURL?: string;
-        version?: string;
-        informationURL?: string;
-    }>;
-}
-```
-
-<details>
-
-<summary>Interface LookupService Details</summary>
-
-#### Property getDocumentation
-
-Returns a Markdown-formatted documentation string for the lookup service.
-
-```ts
-getDocumentation: () => Promise<string>
-```
-
-#### Property getMetaData
-
-Returns a metadata object that can be used to identify the lookup service.
-
-```ts
-getMetaData: () => Promise<{
-    name: string;
-    shortDescription: string;
-    iconURL?: string;
-    version?: string;
-    informationURL?: string;
-}>
-```
-
-#### Property lookup
-
-Queries the lookup service for information
-
-```ts
-lookup: (question: LookupQuestion) => Promise<LookupAnswer | LookupFormula>
-```
-
-#### Property outputAdded
-
-Process the event when a new UTXO is let into a topic
-
-```ts
-outputAdded?: (txid: string, outputIndex: number, outputScript: Script, topic: string) => Promise<void>
-```
-
-#### Property outputDeleted
-
-Processes the deletion event for a UTXO.
-
-```ts
-outputDeleted?: (txid: string, outputIndex: number, topic: string) => Promise<void>
-```
-
-#### Property outputSpent
-
-Processes the spend event for a UTXO.
-
-```ts
-outputSpent?: (txid: string, outputIndex: number, topic: string) => Promise<void>
-```
-
-</details>
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Interface: AppliedTransaction
-
-Represents a transaction that has been applied to a topic.
-
-```ts
-export interface AppliedTransaction {
-    txid: string;
-    topic: string;
-}
-```
-
-<details>
-
-<summary>Interface AppliedTransaction Details</summary>
-
-#### Property topic
-
-Output index of the applied transaction
-
-```ts
-topic: string
-```
-
-#### Property txid
-
-TXID of the applied transaction
-
-```ts
-txid: string
-```
-
-</details>
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Interface: Storage
-
-Defines the Storage Engine interface used internally by the Overlay Services Engine.
-
-```ts
-export interface Storage {
-    insertOutput: (utxo: Output) => Promise<void>;
-    findOutput: (txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF?: boolean) => Promise<Output | null>;
-    findOutputsForTransaction: (txid: string, includeBEEF?: boolean) => Promise<Output[]>;
-    findUTXOsForTopic: (topic: string, since?: number, includeBEEF?: boolean) => Promise<Output[]>;
-    deleteOutput: (txid: string, outputIndex: number, topic: string) => Promise<void>;
-    markUTXOAsSpent: (txid: string, outputIndex: number, topic: string) => Promise<void>;
-    updateConsumedBy: (txid: string, outputIndex: number, topic: string, consumedBy: Array<{
-        txid: string;
-        outputIndex: number;
-    }>) => Promise<void>;
-    updateTransactionBEEF: (txid: string, beef: number[]) => Promise<void>;
-    updateOutputBlockHeight?: (txid: string, outputIndex: number, topic: string, blockHeight: number) => Promise<void>;
-    insertAppliedTransaction: (tx: AppliedTransaction) => Promise<void>;
-    doesAppliedTransactionExist: (tx: AppliedTransaction) => Promise<boolean>;
-}
-```
-
-<details>
-
-<summary>Interface Storage Details</summary>
-
-#### Property deleteOutput
-
-Deletes an output from storage
-
-```ts
-deleteOutput: (txid: string, outputIndex: number, topic: string) => Promise<void>
-```
-
-#### Property doesAppliedTransactionExist
-
-Checks if a duplicate transaction exists
-
-```ts
-doesAppliedTransactionExist: (tx: AppliedTransaction) => Promise<boolean>
-```
-
-#### Property findOutput
-
-Finds an output from storage
-
-```ts
-findOutput: (txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF?: boolean) => Promise<Output | null>
-```
-
-#### Property findOutputsForTransaction
-
-Finds outputs with a matching transaction ID from storage
-
-```ts
-findOutputsForTransaction: (txid: string, includeBEEF?: boolean) => Promise<Output[]>
-```
-
-#### Property findUTXOsForTopic
-
-Finds current UTXOs that have been admitted into a given topic
-
-```ts
-findUTXOsForTopic: (topic: string, since?: number, includeBEEF?: boolean) => Promise<Output[]>
-```
-
-#### Property insertAppliedTransaction
-
-Inserts record of the applied transaction
-
-```ts
-insertAppliedTransaction: (tx: AppliedTransaction) => Promise<void>
-```
-
-#### Property insertOutput
-
-Adds a new output to storage
-
-```ts
-insertOutput: (utxo: Output) => Promise<void>
-```
-
-#### Property markUTXOAsSpent
-
-Updates a UTXO as spent
-
-```ts
-markUTXOAsSpent: (txid: string, outputIndex: number, topic: string) => Promise<void>
-```
-
-#### Property updateConsumedBy
-
-Updates which outputs are consumed by this output
-
-```ts
-updateConsumedBy: (txid: string, outputIndex: number, topic: string, consumedBy: Array<{
-    txid: string;
-    outputIndex: number;
-}>) => Promise<void>
-```
-
-#### Property updateOutputBlockHeight
-
-Updates the block height on an output
-
-```ts
-updateOutputBlockHeight?: (txid: string, outputIndex: number, topic: string, blockHeight: number) => Promise<void>
-```
-
-#### Property updateTransactionBEEF
-
-Updates the beef data for a transaction
-
-```ts
-updateTransactionBEEF: (txid: string, beef: number[]) => Promise<void>
-```
-
-</details>
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Interface: Advertisement
-
-```ts
-export interface Advertisement {
-    protocol: "SHIP" | "SLAP";
-    identityKey: string;
-    domain: string;
-    topicOrService: string;
-    beef?: number[];
-    outputIndex?: number;
-}
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Interface: AdvertisementData
-
-```ts
-export interface AdvertisementData {
-    protocol: "SHIP" | "SLAP";
-    topicOrServiceName: string;
-}
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Interface: Advertiser
-
-Interface for managing SHIP and SLAP advertisements.
-Provides methods for creating, finding, and revoking advertisements.
-
-```ts
-export interface Advertiser {
-    createAdvertisements: (adsData: AdvertisementData[]) => Promise<TaggedBEEF>;
-    findAllAdvertisements: (protocol: "SHIP" | "SLAP") => Promise<Advertisement[]>;
-    revokeAdvertisements: (advertisements: Advertisement[]) => Promise<TaggedBEEF>;
-    parseAdvertisement: (outputScript: Script) => Advertisement;
-}
-```
-
-<details>
-
-<summary>Interface Advertiser Details</summary>
-
-#### Property createAdvertisements
-
-Creates a new SHIP/SLAP advertisement for a given topic.
-
-```ts
-createAdvertisements: (adsData: AdvertisementData[]) => Promise<TaggedBEEF>
-```
-
-#### Property findAllAdvertisements
-
-Finds all SHIP/SLAP advertisements.
-
-```ts
-findAllAdvertisements: (protocol: "SHIP" | "SLAP") => Promise<Advertisement[]>
-```
-
-#### Property parseAdvertisement
-
-Parses an output script to extract an advertisement.
-
-```ts
-parseAdvertisement: (outputScript: Script) => Advertisement
-```
-
-#### Property revokeAdvertisements
-
-Revokes an existing advertisement, either SHIP or SLAP.
-
-```ts
-revokeAdvertisements: (advertisements: Advertisement[]) => Promise<TaggedBEEF>
-```
-
-</details>
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Interface: GraphNode
-
-Represents a node in the temporary graph.
-
-```ts
-export interface GraphNode {
-    txid: string;
-    graphID: string;
-    rawTx: string;
-    outputIndex: number;
-    spentBy?: string;
-    proof?: string;
-    txMetadata?: string;
-    outputMetadata?: string;
-    inputs?: Record<string, {
-        hash: string;
-    }> | undefined;
-    children: GraphNode[];
-    parent?: GraphNode;
-}
-```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
@@ -457,160 +602,6 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 ---
 
-### Class: OverlayGASPRemote
-
-```ts
-export class OverlayGASPRemote implements GASPRemote {
-    constructor(public endpointURL: string, public topic: string) 
-    async getInitialResponse(request: GASPInitialRequest): Promise<GASPInitialResponse> 
-    async requestNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
-    async getInitialReply(response: GASPInitialResponse): Promise<GASPInitialReply> 
-    async submitNode(node: GASPNode): Promise<void | GASPNodeResponse> 
-}
-```
-
-<details>
-
-<summary>Class OverlayGASPRemote Details</summary>
-
-#### Method getInitialResponse
-
-Given an outgoing initial request, sends the request to the foreign instance and obtains their initial response.
-
-```ts
-async getInitialResponse(request: GASPInitialRequest): Promise<GASPInitialResponse> 
-```
-
-#### Method requestNode
-
-Given an outgoing txid, outputIndex and optional metadata, request the associated GASP node from the foreign instance.
-
-```ts
-async requestNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
-```
-
-</details>
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Class: OverlayGASPStorage
-
-```ts
-export class OverlayGASPStorage implements GASPStorage {
-    readonly temporaryGraphNodeRefs: Record<string, GraphNode> = {};
-    constructor(public topic: string, public engine: Engine, public maxNodesInGraph?: number) 
-    async findKnownUTXOs(since: number): Promise<Array<{
-        txid: string;
-        outputIndex: number;
-    }>> 
-    async hydrateGASPNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
-    async findNeededInputs(tx: GASPNode): Promise<GASPNodeResponse | undefined> 
-    async appendToGraph(tx: GASPNode, spentBy?: string | undefined): Promise<void> 
-    async validateGraphAnchor(graphID: string): Promise<void> 
-    async discardGraph(graphID: string): Promise<void> 
-    async finalizeGraph(graphID: string): Promise<void> 
-}
-```
-
-<details>
-
-<summary>Class OverlayGASPStorage Details</summary>
-
-#### Method appendToGraph
-
-Appends a new node to a temporary graph.
-
-```ts
-async appendToGraph(tx: GASPNode, spentBy?: string | undefined): Promise<void> 
-```
-
-Argument Details
-
-+ **tx**
-  + The node to append to this graph.
-+ **spentBy**
-  + Unless this is the same node identified by the graph ID, denotes the TXID and input index for the node which spent this one, in 36-byte format.
-
-Throws
-
-If the node cannot be appended to the graph, either because the graph ID is for a graph the recipient does not want or because the graph has grown to be too large before being finalized.
-
-#### Method discardGraph
-
-Deletes all data associated with a temporary graph that has failed to sync, if the graph exists.
-
-```ts
-async discardGraph(graphID: string): Promise<void> 
-```
-
-Argument Details
-
-+ **graphID**
-  + The TXID and output index (in 36-byte format) for the UTXO at the tip of this graph.
-
-#### Method finalizeGraph
-
-Finalizes a graph, solidifying the new UTXO and its ancestors so that it will appear in the list of known UTXOs.
-
-```ts
-async finalizeGraph(graphID: string): Promise<void> 
-```
-
-Argument Details
-
-+ **graphID**
-  + The TXID and output index (in 36-byte format) for the UTXO at the root of this graph.
-
-#### Method findNeededInputs
-
-For a given node, returns the inputs needed to complete the graph, including whether updated metadata is requested for those inputs.
-
-```ts
-async findNeededInputs(tx: GASPNode): Promise<GASPNodeResponse | undefined> 
-```
-
-Returns
-
-A promise for a mapping of requested input transactions and whether metadata should be provided for each.
-
-Argument Details
-
-+ **tx**
-  + The node for which needed inputs should be found.
-
-#### Method hydrateGASPNode
-
-For a given txid and output index, returns the associated transaction, a merkle proof if the transaction is in a block, and metadata if if requested. If no metadata is requested, metadata hashes on inputs are not returned.
-
-```ts
-async hydrateGASPNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
-```
-
-#### Method validateGraphAnchor
-
-Checks whether the given graph, in its current state, makes reference only to transactions that are proven in the blockchain, or already known by the recipient to be valid.
-Additionally, in a breadth-first manner (ensuring that all inputs for any given node are processed before nodes that spend them), it ensures that the root node remains valid according to the rules of the overlay's topic manager,
-while considering any coins which the Manager had previously indicated were either valid or invalid.
-
-```ts
-async validateGraphAnchor(graphID: string): Promise<void> 
-```
-
-Argument Details
-
-+ **graphID**
-  + The TXID and output index (in 36-byte format) for the UTXO at the tip of this graph.
-
-Throws
-
-If the graph is not well-anchored, according to the rules of Bitcoin or the rules of the Overlay Topic Manager.
-
-</details>
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
 ### Class: Engine
 
 An engine for running BSV Overlay Services (topic managers and lookup services).
@@ -621,8 +612,8 @@ export class Engine {
         [key: string]: TopicManager;
     }, public lookupServices: {
         [key: string]: LookupService;
-    }, public storage: Storage, public chainTracker: ChainTracker | "scripts only", public hostingURL?: string, public shipTrackers?: string[], public slapTrackers?: string[], public broadcaster?: Broadcaster, public advertiser?: Advertiser, public syncConfiguration?: SyncConfiguration, public logTime = false, public logPrefix = "[OVERLAY_ENGINE] ", public throwOnBroadcastFailure = false, public overlayBroadcastFacilitator: OverlayBroadcastFacilitator = new HTTPSOverlayBroadcastFacilitator(), public logger: typeof console = console) 
-    async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" = "current-tx"): Promise<STEAK> 
+    }, public storage: Storage, public chainTracker: ChainTracker | "scripts only", public hostingURL?: string, public shipTrackers?: string[], public slapTrackers?: string[], public broadcaster?: Broadcaster, public advertiser?: Advertiser, public syncConfiguration?: SyncConfiguration, public logTime = false, public logPrefix = "[OVERLAY_ENGINE] ", public throwOnBroadcastFailure = false, public overlayBroadcastFacilitator: OverlayBroadcastFacilitator = new HTTPSOverlayBroadcastFacilitator(), public logger: typeof console = console, public suppressDefaultSyncAdvertisements = true) 
+    async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" = "current-tx", offChainValues?: number[]): Promise<STEAK> 
     async lookup(lookupQuestion: LookupQuestion): Promise<LookupAnswer> 
     async syncAdvertisements(): Promise<void> 
     async startGASPSync(): Promise<void> 
@@ -649,6 +640,8 @@ export class Engine {
 }
 ```
 
+See also: [Advertiser](#interface-advertiser), [LookupService](#interface-lookupservice), [Output](#interface-output), [Storage](#interface-storage), [SyncConfiguration](#type-syncconfiguration), [TopicManager](#interface-topicmanager)
+
 <details>
 
 <summary>Class Engine Details</summary>
@@ -662,8 +655,9 @@ constructor(public managers: {
     [key: string]: TopicManager;
 }, public lookupServices: {
     [key: string]: LookupService;
-}, public storage: Storage, public chainTracker: ChainTracker | "scripts only", public hostingURL?: string, public shipTrackers?: string[], public slapTrackers?: string[], public broadcaster?: Broadcaster, public advertiser?: Advertiser, public syncConfiguration?: SyncConfiguration, public logTime = false, public logPrefix = "[OVERLAY_ENGINE] ", public throwOnBroadcastFailure = false, public overlayBroadcastFacilitator: OverlayBroadcastFacilitator = new HTTPSOverlayBroadcastFacilitator(), public logger: typeof console = console) 
+}, public storage: Storage, public chainTracker: ChainTracker | "scripts only", public hostingURL?: string, public shipTrackers?: string[], public slapTrackers?: string[], public broadcaster?: Broadcaster, public advertiser?: Advertiser, public syncConfiguration?: SyncConfiguration, public logTime = false, public logPrefix = "[OVERLAY_ENGINE] ", public throwOnBroadcastFailure = false, public overlayBroadcastFacilitator: OverlayBroadcastFacilitator = new HTTPSOverlayBroadcastFacilitator(), public logger: typeof console = console, public suppressDefaultSyncAdvertisements = true) 
 ```
+See also: [Advertiser](#interface-advertiser), [LookupService](#interface-lookupservice), [Storage](#interface-storage), [SyncConfiguration](#type-syncconfiguration), [TopicManager](#interface-topicmanager)
 
 Argument Details
 
@@ -697,6 +691,8 @@ Argument Details
   + Facilitator for propagation to other Overlay Services.
 + **logger**
   + The place where log entries are written.
++ **suppressDefaultSyncAdvertisements**
+  + Whether to suppress the default (SHIP/SLAP) sync advertisements.
 
 #### Method getDocumentationForLookupServiceProvider
 
@@ -732,6 +728,7 @@ its historical data based on the provided history selector and current depth.
 ```ts
 async getUTXOHistory(output: Output, historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number, currentDepth = 0): Promise<Output | undefined> 
 ```
+See also: [Output](#interface-output)
 
 Returns
 
@@ -886,7 +883,7 @@ Error if the overlay service engine is not configured for topical synchronizatio
 Submits a transaction for processing by Overlay Services.
 
 ```ts
-async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" = "current-tx"): Promise<STEAK> 
+async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" = "current-tx", offChainValues?: number[]): Promise<STEAK> 
 ```
 
 Returns
@@ -901,12 +898,14 @@ Argument Details
   + Optional callback function invoked when the STEAK is ready.
 + **mode**
   + — Indicates the submission behavior, whether historical or current. Historical transactions are not broadcast or propagated.
++ **offChainValues**
+  + — Values necessary to evaluate topical admittance that are not stored on-chain.
 
 The optional callback function should be used to get STEAK when ready, and avoid waiting for broadcast and transaction propagation to complete.
 
 #### Method syncAdvertisements
 
-Ensures alignment between the current SHIP/SLAP advertisements and the 
+Ensures alignment between the current SHIP/SLAP advertisements and the
 configured Topic Managers and Lookup Services in the engine.
 
 This method performs the following actions:
@@ -946,7 +945,7 @@ export class KnexStorage implements Storage {
     constructor(knex: Knex) 
     async findOutput(txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF: boolean = false): Promise<Output | null> 
     async findOutputsForTransaction(txid: string, includeBEEF: boolean = false): Promise<Output[]> 
-    async findUTXOsForTopic(topic: string, since?: number, includeBEEF: boolean = false): Promise<Output[]> 
+    async findUTXOsForTopic(topic: string, since?: number, limit?: number, includeBEEF: boolean = false): Promise<Output[]> 
     async deleteOutput(txid: string, outputIndex: number, topic: string): Promise<void> 
     async insertOutput(output: Output): Promise<void> 
     async markUTXOAsSpent(txid: string, outputIndex: number, topic?: string): Promise<void> 
@@ -964,33 +963,234 @@ export class KnexStorage implements Storage {
         txid: string;
         topic: string;
     }): Promise<boolean> 
+    async updateLastInteraction(host: string, topic: string, since: number): Promise<void> 
+    async getLastInteraction(host: string, topic: string): Promise<number> 
 }
 ```
+
+See also: [Output](#interface-output), [Storage](#interface-storage)
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Class: OverlayGASPRemote
+
+```ts
+export class OverlayGASPRemote implements GASPRemote {
+    constructor(public endpointURL: string, public topic: string) 
+    async getInitialResponse(request: GASPInitialRequest): Promise<GASPInitialResponse> 
+    async requestNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
+    async getInitialReply(response: GASPInitialResponse): Promise<GASPInitialReply> 
+    async submitNode(node: GASPNode): Promise<GASPNodeResponse | undefined> 
+}
+```
+
+<details>
+
+<summary>Class OverlayGASPRemote Details</summary>
+
+#### Method getInitialResponse
+
+Given an outgoing initial request, sends the request to the foreign instance and obtains their initial response.
+
+```ts
+async getInitialResponse(request: GASPInitialRequest): Promise<GASPInitialResponse> 
+```
+
+#### Method requestNode
+
+Given an outgoing txid, outputIndex and optional metadata, request the associated GASP node from the foreign instance.
+
+```ts
+async requestNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
+```
+
+</details>
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Class: OverlayGASPStorage
+
+```ts
+export class OverlayGASPStorage implements GASPStorage {
+    readonly temporaryGraphNodeRefs: Record<string, GraphNode> = {};
+    constructor(public topic: string, public engine: Engine, public maxNodesInGraph?: number) 
+    async findKnownUTXOs(since: number): Promise<GASPOutput[]> 
+    async hydrateGASPNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
+    async findNeededInputs(tx: GASPNode): Promise<GASPNodeResponse | undefined> 
+    async appendToGraph(tx: GASPNode, spentBy?: string | undefined): Promise<void> 
+    async validateGraphAnchor(graphID: string): Promise<void> 
+    async discardGraph(graphID: string): Promise<void> 
+    async finalizeGraph(graphID: string): Promise<void> 
+}
+```
+
+See also: [Engine](#class-engine), [GraphNode](#interface-graphnode)
+
+<details>
+
+<summary>Class OverlayGASPStorage Details</summary>
+
+#### Method appendToGraph
+
+Appends a new node to a temporary graph.
+
+```ts
+async appendToGraph(tx: GASPNode, spentBy?: string | undefined): Promise<void> 
+```
+
+Argument Details
+
++ **tx**
+  + The node to append to this graph.
++ **spentBy**
+  + Unless this is the same node identified by the graph ID, denotes the TXID and input index for the node which spent this one, in 36-byte format.
+
+Throws
+
+If the node cannot be appended to the graph, either because the graph ID is for a graph the recipient does not want or because the graph has grown to be too large before being finalized.
+
+#### Method discardGraph
+
+Deletes all data associated with a temporary graph that has failed to sync, if the graph exists.
+
+```ts
+async discardGraph(graphID: string): Promise<void> 
+```
+
+Argument Details
+
++ **graphID**
+  + The TXID and output index (in 36-byte format) for the UTXO at the tip of this graph.
+
+#### Method finalizeGraph
+
+Finalizes a graph, solidifying the new UTXO and its ancestors so that it will appear in the list of known UTXOs.
+
+```ts
+async finalizeGraph(graphID: string): Promise<void> 
+```
+
+Argument Details
+
++ **graphID**
+  + The TXID and output index (in 36-byte format) for the UTXO at the root of this graph.
+
+#### Method findNeededInputs
+
+For a given node, returns the inputs needed to complete the graph, including whether updated metadata is requested for those inputs.
+
+```ts
+async findNeededInputs(tx: GASPNode): Promise<GASPNodeResponse | undefined> 
+```
+
+Returns
+
+A promise for a mapping of requested input transactions and whether metadata should be provided for each.
+
+Argument Details
+
++ **tx**
+  + The node for which needed inputs should be found.
+
+#### Method hydrateGASPNode
+
+For a given txid and output index, returns the associated transaction, a merkle proof if the transaction is in a block, and metadata if if requested. If no metadata is requested, metadata hashes on inputs are not returned.
+
+```ts
+async hydrateGASPNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
+```
+
+#### Method validateGraphAnchor
+
+Checks whether the given graph, in its current state, makes reference only to transactions that are proven in the blockchain, or already known by the recipient to be valid.
+Additionally, in a breadth-first manner (ensuring that all inputs for any given node are processed before nodes that spend them), it ensures that the root node remains valid according to the rules of the overlay's topic manager,
+while considering any coins which the Manager had previously indicated were either valid or invalid.
+
+```ts
+async validateGraphAnchor(graphID: string): Promise<void> 
+```
+
+Argument Details
+
++ **graphID**
+  + The TXID and output index (in 36-byte format) for the UTXO at the tip of this graph.
+
+Throws
+
+If the graph is not well-anchored, according to the rules of Bitcoin or the rules of the Overlay Topic Manager.
+
+</details>
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
 ## Functions
 
-| |
-| --- |
-| [down](#function-down) |
-| [down](#function-down) |
-| [down](#function-down) |
-| [down](#function-down) |
-| [up](#function-up) |
-| [up](#function-up) |
-| [up](#function-up) |
-| [up](#function-up) |
+| | |
+| --- | --- |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
 
-### Function: up
+### Function: down
 
 ```ts
-export async function up(knex: Knex): Promise<void> 
+export async function down(knex: Knex): Promise<void> 
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void> 
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void> 
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void> 
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void> 
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void> 
 ```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
@@ -1014,10 +1214,10 @@ export async function up(knex: Knex): Promise<void>
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
-### Function: down
+### Function: up
 
 ```ts
-export async function down(knex: Knex): Promise<void> 
+export async function up(knex: Knex): Promise<void> 
 ```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
@@ -1032,10 +1232,10 @@ export async function up(knex: Knex): Promise<void>
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
-### Function: down
+### Function: up
 
 ```ts
-export async function down(knex: Knex): Promise<void> 
+export async function up(knex: Knex): Promise<void> 
 ```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
@@ -1050,10 +1250,19 @@ export async function up(knex: Knex): Promise<void>
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
-### Function: down
+### Function: up
 
 ```ts
-export async function down(knex: Knex): Promise<void> 
+export async function up(knex: Knex): Promise<void> 
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: up
+
+```ts
+export async function up(knex: Knex): Promise<void> 
 ```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
@@ -1063,14 +1272,26 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 | |
 | --- |
+| [AdmissionMode](#type-admissionmode) |
 | [LookupFormula](#type-lookupformula) |
-| [Output](#type-output) |
+| [OutputAdmittedByTopic](#type-outputadmittedbytopic) |
+| [OutputSpent](#type-outputspent) |
+| [SpendNotificationMode](#type-spendnotificationmode) |
 | [SyncConfiguration](#type-syncconfiguration) |
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
 
+### Type: AdmissionMode
+
+```ts
+export type AdmissionMode = "locking-script" | "whole-tx"
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
 ### Type: LookupFormula
 
 The formula that will be used by the Overlay Services Engine to compute the Lookup Answer. Can be returned by Lookup Services in response to a Lookup Question.
@@ -1080,35 +1301,77 @@ export type LookupFormula = Array<{
     txid: string;
     outputIndex: number;
     history?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number;
+    context?: number[];
 }>
 ```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
-### Type: Output
-
-Represents an output to be tracked by the Overlay Services Engine
+### Type: OutputAdmittedByTopic
 
 ```ts
-export type Output = {
+export type OutputAdmittedByTopic = {
+    mode: "locking-script";
     txid: string;
     outputIndex: number;
-    outputScript: number[];
-    satoshis: number;
     topic: string;
-    spent: boolean;
-    outputsConsumed: Array<{
-        txid: string;
-        outputIndex: number;
-    }>;
-    consumedBy: Array<{
-        txid: string;
-        outputIndex: number;
-    }>;
-    beef?: number[];
-    blockHeight?: number;
+    satoshis: number;
+    lockingScript: Script;
+    offChainValues?: number[];
+} | {
+    mode: "whole-tx";
+    atomicBEEF: number[];
+    outputIndex: number;
+    topic: string;
+    offChainValues?: number[];
 }
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Type: OutputSpent
+
+```ts
+export type OutputSpent = {
+    mode: "none";
+    txid: string;
+    outputIndex: number;
+    topic: string;
+} | {
+    mode: "txid";
+    txid: string;
+    outputIndex: number;
+    topic: string;
+    spendingTxid: string;
+} | {
+    mode: "script";
+    txid: string;
+    outputIndex: number;
+    topic: string;
+    spendingTxid: string;
+    inputIndex: number;
+    unlockingScript: Script;
+    sequenceNumber: number;
+    offChainValues?: number[];
+} | {
+    mode: "whole-tx";
+    txid: string;
+    outputIndex: number;
+    topic: string;
+    spendingAtomicBEEF: number[];
+    offChainValues?: number[];
+}
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Type: SpendNotificationMode
+
+```ts
+export type SpendNotificationMode = "none" | "txid" | "script" | "whole-tx"
 ```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
