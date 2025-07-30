@@ -765,7 +765,7 @@ export class Engine {
     }
 
     const [rootTxid, rootOutputIndex] = graphID.split('.')
-    const output = await this.storage.findOutput(rootTxid, Number(rootOutputIndex))
+    const output = await this.storage.findOutput(rootTxid, Number(rootOutputIndex), undefined, undefined, true)
     return await hydrator(output)
   }
 
