@@ -51,9 +51,9 @@ export interface Storage {
    * Deletes an output from storage
    * @param txid — The TXID of the output to delete
    * @param outputIndex — The index of the output to delete
-   * @param topic — The topic where the output should be deleted (optional)
+   * @param topic — The topic where the output should be deleted
    */
-  deleteOutput: (txid: string, outputIndex: number, topic?: string) => Promise<void>
+  deleteOutput: (txid: string, outputIndex: number, topic: string) => Promise<void>
 
   /**
   * Updates a UTXO as spent
