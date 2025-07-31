@@ -946,7 +946,7 @@ export class KnexStorage implements Storage {
     async findOutput(txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF: boolean = false): Promise<Output | null> 
     async findOutputsForTransaction(txid: string, includeBEEF: boolean = false): Promise<Output[]> 
     async findUTXOsForTopic(topic: string, since?: number, limit?: number, includeBEEF: boolean = false): Promise<Output[]> 
-    async deleteOutput(txid: string, outputIndex: number, topic: string): Promise<void> 
+    async deleteOutput(txid: string, outputIndex: number, _: string): Promise<void> 
     async insertOutput(output: Output): Promise<void> 
     async markUTXOAsSpent(txid: string, outputIndex: number, topic?: string): Promise<void> 
     async updateConsumedBy(txid: string, outputIndex: number, topic: string, consumedBy: Array<{

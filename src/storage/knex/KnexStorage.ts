@@ -154,7 +154,7 @@ export class KnexStorage implements Storage {
     }))
   }
 
-  async deleteOutput (txid: string, outputIndex: number, topic: string): Promise<void> {
+  async deleteOutput (txid: string, outputIndex: number, _: string): Promise<void> {
     await this.knex.transaction(async trx => {
       // Delete the specific output
       await trx('outputs').where({ txid, outputIndex }).del()

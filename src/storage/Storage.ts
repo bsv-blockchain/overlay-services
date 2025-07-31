@@ -24,14 +24,16 @@ export interface Storage {
    * Finds an output from storage
    * @param txid — TXID of hte output to find
    * @param outputIndex — Output index for the output to find
-   * @param topic — The topic in which the output is stored
-   * @param spent — Whether the output must be spent to be returned
+   * @param topic — The topic in which the output is stored (optional)
+   * @param spent — Whether the output must be spent to be returned (optional)
+   * @param includeBEEF — Whether to include the BEEF data for the output (optional)
    */
   findOutput: (txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF?: boolean) => Promise<Output | null>
 
   /**
    * Finds outputs with a matching transaction ID from storage
    * @param txid — TXID of the outputs to find
+   * @param includeBEEF — Whether to include the BEEF data for the outputs (optional)
    */
   findOutputsForTransaction: (txid: string, includeBEEF?: boolean) => Promise<Output[]>
 
@@ -40,6 +42,7 @@ export interface Storage {
    * @param topic - The topic for which we want to find Unspent Transaction Outputs (UTXOs).
    * @param since - Optional parameter indicating the minimum score value to retrieve matching UTXOs from. This is used for score-based filtering.
    * @param limit - Optional parameter to limit the number of results returned
+   * @param includeBEEF — Whether to include the BEEF data for the outputs (optional)
    * @returns A promise that resolves to an array of matching UTXOs.
    */
   findUTXOsForTopic: (topic: string, since?: number, limit?: number, includeBEEF?: boolean) => Promise<Output[]>

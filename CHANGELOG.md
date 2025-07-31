@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. The format 
 ## Table of Contents
 
 - [Unreleased](#unreleased)
+- [0.4.6 - 2025-07-30](#046---2025-07-30)
 - [0.4.5 - 2025-07-24](#111---2025-07-24)
 - [0.4.4 - 2025-07-22](#111---2025-07-22)
 - [0.4.3 - 2025-07-18](#110---2025-07-18)
@@ -31,6 +32,14 @@ All notable changes to this project will be documented in this file. The format 
 - (Notify of any improvements related to security vulnerabilities or potential risks.)
 
 ---
+
+### Fixed
+- Updated Engine for GASP sync - ensures that includeBeef is set to true when finding an output, since hydrate() requires it.
+
+### Changed
+- 
+
+## [0.4.5] - 2025-07-30
 
 ### Added
 - Support suppressing ship/slap advertisements.

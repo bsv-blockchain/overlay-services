@@ -750,7 +750,7 @@ export class Engine {
         let foundNode: GASPNode | undefined
         for (const currentOutput of output.outputsConsumed) {
           try {
-            const outputFound = await this.storage.findOutput(currentOutput.txid, currentOutput.outputIndex)
+            const outputFound = await this.storage.findOutput(currentOutput.txid, currentOutput.outputIndex, undefined, undefined, true)
             foundNode = await hydrator(outputFound)
             break
           } catch (error) {
