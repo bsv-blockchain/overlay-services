@@ -438,7 +438,7 @@ describe('BSV Overlay Services Engine', () => {
       await expect(engine.submit({
         beef: exampleBeef,
         topics: ['Hello']
-      })).rejects.toHaveProperty('message', 'Verification failed because the input at index 0 of transaction 3ecead27a44d013ad1aae40038acbb1883ac9242406808bb4667c15b4f164eac is missing an associated source transaction. This source transaction is required for transaction verification because there is no merkle proof for the transaction spending a UTXO it contains.')
+      })).rejects.toHaveProperty('message', 'Invalid merkle path for transaction 3ecead27a44d013ad1aae40038acbb1883ac9242406808bb4667c15b4f164eac')
     })
     describe('For each topic being processed', () => {
       it('Checks for duplicate transactions', async () => {

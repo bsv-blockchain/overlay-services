@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. The format 
 ## Table of Contents
 
 - [Unreleased](#unreleased)
+- [0.4.7 - 2025-09-26](#047---2025-09-26)
 - [0.4.6 - 2025-07-30](#046---2025-07-30)
 - [0.4.5 - 2025-07-24](#111---2025-07-24)
 - [0.4.4 - 2025-07-22](#111---2025-07-22)
@@ -30,6 +31,12 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Security
 - (Notify of any improvements related to security vulnerabilities or potential risks.)
+
+---
+
+### Fixed
+- Added check for invalid input index and new deps in history traversal.
+- Upgrade ts-sdk deps
 
 ---
 
