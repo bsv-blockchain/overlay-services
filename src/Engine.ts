@@ -841,6 +841,7 @@ export class Engine {
             : input.sourceTransaction?.id('hex')
           return sourceTXID === output.txid && input.sourceOutputIndex === output.outputIndex
         })
+        if (inputIndex === -1 || inputIndex == null) continue
         if (input.beef === undefined) {
           throw new Error('Input must have associated transaction BEEF!')
         }
