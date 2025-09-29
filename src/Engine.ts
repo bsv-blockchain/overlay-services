@@ -789,7 +789,7 @@ export class Engine {
     historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number,
     currentDepth = 0
   ): Promise<Output | undefined> {
-    // If we have an output but no history selector, jsut return the output.
+    // If we have an output but no history selector, just return the output.
     if (typeof historySelector === 'undefined') {
       return output
     }
@@ -835,13 +835,18 @@ export class Engine {
       const tx = Transaction.fromBEEF(output.beef)
       for (const input of childHistories) {
         if (input === undefined || input === null) continue
-        const inputIndex = tx.inputs.findIndex((input) => {
-          const sourceTXID = input.sourceTXID !== undefined && input.sourceTXID !== ''
-            ? input.sourceTXID
-            : input.sourceTransaction?.id('hex')
-          return sourceTXID === output.txid && input.sourceOutputIndex === output.outputIndex
+        const inputIndex = tx.inputs.findIndex((candidateInput) => {
+          const sourceTXID = candidateInput.sourceTXID !== undefined && candidateInput.sourceTXID !== ''
+            ? candidateInput.sourceTXID
+            : candidateInput.sourceTransaction?.id('hex')
+
+          return sourceTXID === input.txid && candidateInput.sourceOutputIndex === input.outputIndex
         })
         if (inputIndex === -1 || inputIndex == null) continue
+        if (!tx.inputs[inputIndex]) {
+          this.logger.error(`Input at index ${inputIndex} is undefined, but findIndex found it. Possible sparse array from BEEF parsing.`)
+          continue
+        }
         if (input.beef === undefined) {
           throw new Error('Input must have associated transaction BEEF!')
         }
