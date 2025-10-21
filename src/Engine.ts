@@ -480,7 +480,7 @@ export class Engine {
           return null
         }
 
-        // Get the history for this utxo and construct a BRC-8 Envelope
+        // Get the history for this utxo and construct a BEEF
         const output = await this.getUTXOHistory(UTXO, history, 0, hydrationContext)
         if (output?.beef === undefined) {
           return null
