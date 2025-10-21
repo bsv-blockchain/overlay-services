@@ -899,7 +899,8 @@ describe('BSV Overlay Services Engine', () => {
           expect(engine.getUTXOHistory).toHaveBeenCalledWith(
             mockOutput,
             undefined,
-            0
+            0,
+            expect.anything()
           )
         })
       })

@@ -26,6 +26,15 @@ import { OverlayGASPStorage } from './GASP/OverlayGASPStorage.js'
 
 const DEFAULT_GASP_SYNC_LIMIT = 10000
 
+type UTXOHistoryHydrationContext = {
+  outputCache: Map<string, Promise<Output | null>>
+}
+
+type HydratedUTXOHistoryNode = {
+  output: Output
+  transaction: Transaction
+}
+
 /**
  * An engine for running BSV Overlay Services (topic managers and lookup services).
  */
@@ -463,32 +472,117 @@ export class Engine {
     if (lookupService === undefined || lookupService === null) throw new Error(`Lookup service not found for provider: ${lookupQuestion.service} `)
 
     const lookupResult = await lookupService.lookup(lookupQuestion)
-    const hydratedOutputs: Array<{ beef: number[], outputIndex: number, context?: number[] }> = []
-    for (const { txid, outputIndex, history, context } of lookupResult) {
-      // Make sure this is an unspent output (UTXO)
-      const UTXO = await this.storage.findOutput(
-        txid,
-        outputIndex,
-        undefined,
-        undefined,
-        true
-      )
-      if (UTXO === undefined || UTXO === null) continue
+    const hydrationContext = this.createUTXOHistoryHydrationContext()
+    const hydratedOutputs = (await Promise.all(
+      lookupResult.map(async ({ txid, outputIndex, history, context }) => {
+        const UTXO = await this.loadOutputWithBEEF(txid, outputIndex, hydrationContext)
+        if (UTXO === null) {
+          return null
+        }
 
-      // Get the history for this utxo and construct a BRC-8 Envelope
-      const output = await this.getUTXOHistory(UTXO, history, 0)
-      if (output?.beef !== undefined) {
-        hydratedOutputs.push({
+        // Get the history for this utxo and construct a BRC-8 Envelope
+        const output = await this.getUTXOHistory(UTXO, history, 0, hydrationContext)
+        if (output?.beef === undefined) {
+          return null
+        }
+
+        return {
           beef: output.beef,
           outputIndex: output.outputIndex,
           context
-        })
-      }
-    }
+        }
+      })
+    ))
+      .filter((output): output is { beef: number[], outputIndex: number, context: number[] | undefined } => output !== null)
+      .map(({ beef, outputIndex, context }) => (
+        context === undefined
+          ? { beef, outputIndex }
+          : { beef, outputIndex, context }
+      ))
     return {
       type: 'output-list',
       outputs: hydratedOutputs
     }
+  }
+
+  private createUTXOHistoryHydrationContext(): UTXOHistoryHydrationContext {
+    return {
+      outputCache: new Map<string, Promise<Output | null>>()
+    }
+  }
+
+  private async loadOutputWithBEEF(
+    txid: string,
+    outputIndex: number,
+    context: UTXOHistoryHydrationContext
+  ): Promise<Output | null> {
+    const cacheKey = `${txid}:${outputIndex}`
+    let cached = context.outputCache.get(cacheKey)
+    if (cached === undefined) {
+      cached = this.storage.findOutput(txid, outputIndex, undefined, undefined, true)
+      context.outputCache.set(cacheKey, cached)
+    }
+    const output = await cached
+    return output ?? null
+  }
+
+  private async hydrateUTXOHistoryNode(
+    output: Output,
+    historySelector: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number,
+    currentDepth: number,
+    context: UTXOHistoryHydrationContext
+  ): Promise<HydratedUTXOHistoryNode | undefined> {
+    if (output.beef === undefined) {
+      throw new Error('Output must have associated transaction BEEF!')
+    }
+
+    let shouldTraverseHistory: boolean
+    if (typeof historySelector === 'number') {
+      shouldTraverseHistory = currentDepth <= historySelector
+    } else {
+      shouldTraverseHistory = await historySelector(output.beef, output.outputIndex, currentDepth)
+    }
+
+    if (shouldTraverseHistory === false) {
+      return undefined
+    }
+
+    const childNodes = (await Promise.all(
+      output.outputsConsumed.map(async (outputIdentifier) => {
+        const childOutput = await this.loadOutputWithBEEF(outputIdentifier.txid, outputIdentifier.outputIndex, context)
+        if (childOutput === null) {
+          return undefined
+        }
+
+        return await this.hydrateUTXOHistoryNode(childOutput, historySelector, currentDepth + 1, context)
+      })
+    )).filter((node): node is HydratedUTXOHistoryNode => node !== undefined)
+
+    const tx = Transaction.fromBEEF(output.beef)
+
+    for (const child of childNodes) {
+      const inputIndex = tx.inputs.findIndex((candidateInput) => {
+        const sourceTXID = candidateInput.sourceTXID !== undefined && candidateInput.sourceTXID !== ''
+          ? candidateInput.sourceTXID
+          : candidateInput.sourceTransaction?.id('hex')
+
+        return sourceTXID === child.output.txid && candidateInput.sourceOutputIndex === child.output.outputIndex
+      })
+
+      if (inputIndex === -1 || inputIndex == null) {
+        continue
+      }
+
+      const targetInput = tx.inputs[inputIndex]
+      if (!targetInput) {
+        this.logger.error(`Input at index ${inputIndex} is undefined, but findIndex found it. Possible sparse array from BEEF parsing.`)
+        continue
+      }
+
+      targetInput.sourceTransaction = child.transaction
+    }
+
+    return { output, transaction: tx }
   }
 
   /**
@@ -783,79 +877,31 @@ export class Engine {
    * @param {number} [currentDepth=0] - The current depth of the traversal relative to the top-level UTXO.
    *
    * @returns {Promise<Output | undefined>} - A promise that resolves to the output history if found, or undefined if not.
-   */
+  */
   async getUTXOHistory(
     output: Output,
     historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number,
-    currentDepth = 0
+    currentDepth = 0,
+    context: UTXOHistoryHydrationContext = this.createUTXOHistoryHydrationContext()
   ): Promise<Output | undefined> {
     // If we have an output but no history selector, just return the output.
     if (typeof historySelector === 'undefined') {
       return output
     }
 
-    if (output.beef === undefined) {
-      throw new Error('Output must have associated transaction BEEF!')
-    }
-
-    // Determine if history traversal should continue for the current node
-    let shouldTraverseHistory
-    if (typeof historySelector !== 'number') {
-      shouldTraverseHistory = await historySelector(output.beef, output.outputIndex, currentDepth)
-    } else {
-      shouldTraverseHistory = currentDepth <= historySelector
-    }
-
-    if (shouldTraverseHistory === false) {
-      return undefined
-    } else if (output !== null && output !== undefined && output.outputsConsumed.length === 0) {
-      return output
-    }
-
     try {
-      // Query the storage engine for UTXOs consumed by this UTXO
-      // Only retrieve unique values in case outputs are doubly referenced
-      const outputsConsumed: Array<{ txid: string, outputIndex: number }> = output.outputsConsumed
-
-      // Find the child outputs for each utxo consumed by the current output
-      const childHistories = (await Promise.all(
-        outputsConsumed.map(async (outputIdentifier) => {
-          const output = await this.storage.findOutput(outputIdentifier.txid, outputIdentifier.outputIndex, undefined, undefined, true)
-
-          // Make sure an output was found
-          if (output === undefined || output === null) {
-            return undefined
-          }
-
-          // Find previousUTXO history
-          return await this.getUTXOHistory(output, historySelector, currentDepth + 1)
-        })
-      )).filter(x => x !== undefined)
-
-      const tx = Transaction.fromBEEF(output.beef)
-      for (const input of childHistories) {
-        if (input === undefined || input === null) continue
-        const inputIndex = tx.inputs.findIndex((candidateInput) => {
-          const sourceTXID = candidateInput.sourceTXID !== undefined && candidateInput.sourceTXID !== ''
-            ? candidateInput.sourceTXID
-            : candidateInput.sourceTransaction?.id('hex')
-
-          return sourceTXID === input.txid && candidateInput.sourceOutputIndex === input.outputIndex
-        })
-        if (inputIndex === -1 || inputIndex == null) continue
-        if (!tx.inputs[inputIndex]) {
-          this.logger.error(`Input at index ${inputIndex} is undefined, but findIndex found it. Possible sparse array from BEEF parsing.`)
-          continue
-        }
-        if (input.beef === undefined) {
-          throw new Error('Input must have associated transaction BEEF!')
-        }
-        tx.inputs[inputIndex].sourceTransaction = Transaction.fromBEEF(input.beef)
+      if (output.beef === undefined) {
+        throw new Error('Output must have associated transaction BEEF!')
       }
-      const beef = tx.toBEEF()
+
+      const hydratedNode = await this.hydrateUTXOHistoryNode(output, historySelector, currentDepth, context)
+      if (hydratedNode === undefined) {
+        return undefined
+      }
+
       return {
-        ...output,
-        beef
+        ...hydratedNode.output,
+        beef: hydratedNode.transaction.toBEEF()
       }
     } catch (e) {
       // Handle any errors that occurred
