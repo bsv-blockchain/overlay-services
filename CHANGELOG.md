@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. The format 
 ## Table of Contents
 
 - [Unreleased](#unreleased)
+- [0.5.0 - 2025-10-21](#050---2025-10-21)
 - [0.4.8 - 2025-09-29](#048---2025-09-29)
 - [0.4.7 - 2025-09-26](#047---2025-09-26)
 - [0.4.6 - 2025-07-30](#046---2025-07-30)
@@ -35,22 +36,13 @@ All notable changes to this project will be documented in this file. The format 
 
 ---
 
-### Fixed
-- Fixed bug with UTXO history traversal.
-
----
-
-### Fixed
-- Added check for invalid input index and new deps in history traversal.
-- Upgrade ts-sdk deps
-
----
-
-### Fixed
-- Updated Engine for GASP sync - ensures that includeBeef is set to true when finding an output, since hydrate() requires it.
+## [0.5.0] - 2025-10-21
 
 ### Changed
-- 
+- Improved performance of BEEF hydration
+- Added check for invalid input index and new deps in history traversal.
+- Upgrade ts-sdk deps
+- Updated Engine for GASP sync - ensures that includeBeef is set to true when finding an output, since hydrate() requires it.
 
 ## [0.4.5] - 2025-07-30
 
