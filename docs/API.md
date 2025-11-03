@@ -619,7 +619,7 @@ export class Engine {
     async startGASPSync(): Promise<void> 
     async provideForeignSyncResponse(initialRequest: GASPInitialRequest, topic: string): Promise<GASPInitialResponse> 
     async provideForeignGASPNode(graphID: string, txid: string, outputIndex: number): Promise<GASPNode> 
-    async getUTXOHistory(output: Output, historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number, currentDepth = 0): Promise<Output | undefined> 
+    async getUTXOHistory(output: Output, historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number, currentDepth = 0, context: UTXOHistoryHydrationContext = this.createUTXOHistoryHydrationContext()): Promise<Output | undefined> 
     async handleNewMerkleProof(txid: string, proof: MerklePath, blockHeight?: number): Promise<void> 
     async listTopicManagers(): Promise<Record<string, {
         name: string;
@@ -726,7 +726,7 @@ This method traverses the history of a given Unspent Transaction Output (UTXO) a
 its historical data based on the provided history selector and current depth.
 
 ```ts
-async getUTXOHistory(output: Output, historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number, currentDepth = 0): Promise<Output | undefined> 
+async getUTXOHistory(output: Output, historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number, currentDepth = 0, context: UTXOHistoryHydrationContext = this.createUTXOHistoryHydrationContext()): Promise<Output | undefined> 
 ```
 See also: [Output](#interface-output)
 

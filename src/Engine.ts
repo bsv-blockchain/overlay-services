@@ -151,124 +151,132 @@ export class Engine {
 
     const steak: STEAK = {}
     const dupeTopics = new Set<string>()
+    const failedTopics = new Set<string>()
 
     // Parallelize the topic processing
-    const topicPromises = taggedBEEF.topics.map(async topic => {
-      if (this.managers[topic] === undefined || this.managers[topic] === null) {
-        throw new Error(`This server does not support this topic: ${topic}`)
-      }
-
-      // Check for duplicate transactions
-      this.startTime(`dupCheck_${txid.substring(0, 10)}`)
-      const dupeCheck = await this.storage.doesAppliedTransactionExist({ txid, topic })
-      this.endTime(`dupCheck_${txid.substring(0, 10)}`)
-
-      if (dupeCheck) {
-        dupeTopics.add(topic)
-        steak[topic] = { outputsToAdmit: [], coinsToRetain: [] }
-        return
-      }
-
-      // Identify previous coins admitted to this specific topic
-      const previousCoins: number[] = []
-      const outputPromises = tx.inputs.map(async (input, i) => {
-        const previousTXID = input.sourceTXID !== undefined ? input.sourceTXID : input.sourceTransaction?.id('hex')
-        if (previousTXID !== undefined) {
-          // Check if the previous output was admitted to this specific topic
-          const output = await this.storage.findOutput(previousTXID, input.sourceOutputIndex, topic)
-          if (output !== undefined && output !== null) {
-            previousCoins.push(i)
-            return output
-          }
+    const topicPromises = taggedBEEF.topics.map(async (topic) => {
+      try {
+        if (this.managers[topic] === undefined || this.managers[topic] === null) {
+          throw new Error(`This server does not support this topic: ${topic}`)
         }
-        return null
-      })
 
-      this.startTime(`previousOutputQuery_${txid.substring(0, 10)}`)
-      const outputs = await Promise.all(outputPromises)
-      this.endTime(`previousOutputQuery_${txid.substring(0, 10)}`)
+        // Check for duplicate transactions
+        this.startTime(`dupCheck_${txid.substring(0, 10)}`)
+        const dupeCheck = await this.storage.doesAppliedTransactionExist({ txid, topic })
+        this.endTime(`dupCheck_${txid.substring(0, 10)}`)
 
-      const markSpentPromises = outputs.map(async (output) => {
-        if (output !== undefined && output !== null) {
-          try {
-            await this.storage.markUTXOAsSpent(output.txid, output.outputIndex, topic)
-            await Promise.all(Object.values(this.lookupServices).map(async l => {
-              try {
-                if (typeof l.outputSpent === 'function') {
-                  if (l.spendNotificationMode === 'txid') {
-                    await l.outputSpent({
-                      mode: 'txid',
-                      spendingTxid: txid,
-                      txid: output.txid,
-                      outputIndex: output.outputIndex,
-                      topic
-                    })
-                  } else if (l.spendNotificationMode === 'script') {
-                    const inputIndex = tx.inputs.findIndex(i => {
-                      let realSource = i.sourceTXID
-                      if (!realSource) {
-                        realSource = i.sourceTransaction?.id('hex')
-                      }
-                      return realSource === output.txid && i.sourceOutputIndex === output.outputIndex
-                    })
-                    if (!inputIndex) {
-                      throw new Error('Could not find input index')
-                    }
-                    await l.outputSpent({
-                      mode: 'script',
-                      spendingTxid: txid,
-                      inputIndex,
-                      sequenceNumber: tx.inputs[inputIndex].sequence ?? 0xffffffff,
-                      unlockingScript: tx.inputs[inputIndex].unlockingScript!,
-                      txid: output.txid,
-                      outputIndex: output.outputIndex,
-                      topic,
-                      offChainValues
-                    })
-                  } else if (l.spendNotificationMode === 'whole-tx') {
-                    await l.outputSpent({
-                      mode: 'whole-tx',
-                      spendingAtomicBEEF: tx.toAtomicBEEF(),
-                      txid: output.txid,
-                      outputIndex: output.outputIndex,
-                      topic,
-                      offChainValues
-                    })
-                  } else { // none
-                    await l.outputSpent({
-                      mode: 'none',
-                      txid: output.txid,
-                      outputIndex: output.outputIndex,
-                      topic
-                    })
-                  }
-                }
-              } catch (error) {
-                this.logger.error('Error in lookup service for outputSpent:', error)
-              }
-            }))
-          } catch (error) {
-            this.logger.error('Error marking UTXO as spent:', error)
-          }
-        }
-      })
-
-      let admissibleOutputs: AdmittanceInstructions = { outputsToAdmit: [], coinsToRetain: [] }
-      // Determine which outputs are admissible for this topic
-      const admissibleOutputsPromise = (async () => {
-        try {
-          this.startTime(`identifyAdmissibleOutputs_${txid.substring(0, 10)}`)
-          admissibleOutputs = await this.managers[topic].identifyAdmissibleOutputs(taggedBEEF.beef, previousCoins, offChainValues)
-          this.endTime(`identifyAdmissibleOutputs_${txid.substring(0, 10)}`)
-        } catch (_) {
+        if (dupeCheck) {
+          dupeTopics.add(topic)
           steak[topic] = { outputsToAdmit: [], coinsToRetain: [] }
+          return
         }
-      })()
 
-      // Wait for both tasks to complete
-      await Promise.all([markSpentPromises, admissibleOutputsPromise])
-      // Keep track of what outputs were admitted for what topic
-      steak[topic] = admissibleOutputs
+        // Identify previous coins admitted to this specific topic
+        const previousCoins: number[] = []
+        const outputPromises = tx.inputs.map(async (input, i) => {
+          const previousTXID = input.sourceTXID !== undefined ? input.sourceTXID : input.sourceTransaction?.id('hex')
+          if (previousTXID !== undefined) {
+            // Check if the previous output was admitted to this specific topic
+            const output = await this.storage.findOutput(previousTXID, input.sourceOutputIndex, topic)
+            if (output !== undefined && output !== null) {
+              previousCoins.push(i)
+              return output
+            }
+          }
+          return null
+        })
+
+        this.startTime(`previousOutputQuery_${txid.substring(0, 10)}`)
+        const outputs = await Promise.all(outputPromises)
+        this.endTime(`previousOutputQuery_${txid.substring(0, 10)}`)
+
+        const markSpentPromises = outputs.map(async (output) => {
+          if (output !== undefined && output !== null) {
+            try {
+              await this.storage.markUTXOAsSpent(output.txid, output.outputIndex, topic)
+              await Promise.all(Object.values(this.lookupServices).map(async l => {
+                try {
+                  if (typeof l.outputSpent === 'function') {
+                    if (l.spendNotificationMode === 'txid') {
+                      await l.outputSpent({
+                        mode: 'txid',
+                        spendingTxid: txid,
+                        txid: output.txid,
+                        outputIndex: output.outputIndex,
+                        topic
+                      })
+                    } else if (l.spendNotificationMode === 'script') {
+                      const inputIndex = tx.inputs.findIndex(i => {
+                        let realSource = i.sourceTXID
+                        if (!realSource) {
+                          realSource = i.sourceTransaction?.id('hex')
+                        }
+                        return realSource === output.txid && i.sourceOutputIndex === output.outputIndex
+                      })
+                      if (inputIndex === -1) {
+                        throw new Error('Could not find input index')
+                      }
+                      await l.outputSpent({
+                        mode: 'script',
+                        spendingTxid: txid,
+                        inputIndex,
+                        sequenceNumber: tx.inputs[inputIndex].sequence ?? 0xffffffff,
+                        unlockingScript: tx.inputs[inputIndex].unlockingScript!,
+                        txid: output.txid,
+                        outputIndex: output.outputIndex,
+                        topic,
+                        offChainValues
+                      })
+                    } else if (l.spendNotificationMode === 'whole-tx') {
+                      await l.outputSpent({
+                        mode: 'whole-tx',
+                        spendingAtomicBEEF: tx.toAtomicBEEF(),
+                        txid: output.txid,
+                        outputIndex: output.outputIndex,
+                        topic,
+                        offChainValues
+                      })
+                    } else { // none
+                      await l.outputSpent({
+                        mode: 'none',
+                        txid: output.txid,
+                        outputIndex: output.outputIndex,
+                        topic
+                      })
+                    }
+                  }
+                } catch (error) {
+                  this.logger.error('Error in lookup service for outputSpent:', error)
+                }
+              }))
+            } catch (error) {
+              this.logger.error('Error marking UTXO as spent:', error)
+            }
+          }
+        })
+
+        let admissibleOutputs: AdmittanceInstructions = { outputsToAdmit: [], coinsToRetain: [] }
+        // Determine which outputs are admissible for this topic
+        const admissibleOutputsPromise = (async () => {
+          try {
+            this.startTime(`identifyAdmissibleOutputs_${txid.substring(0, 10)}`)
+            admissibleOutputs = await this.managers[topic].identifyAdmissibleOutputs(taggedBEEF.beef, previousCoins, offChainValues)
+            this.endTime(`identifyAdmissibleOutputs_${txid.substring(0, 10)}`)
+          } catch (_) {
+            failedTopics.add(topic)
+            steak[topic] = { outputsToAdmit: [], coinsToRetain: [] }
+          }
+        })()
+
+        // Wait for both tasks to complete
+        await Promise.all([...markSpentPromises, admissibleOutputsPromise])
+        // Keep track of what outputs were admitted for what topic
+        steak[topic] = admissibleOutputs
+      } catch (error) {
+        this.logger.error('Error processing topic during submit:', error)
+        failedTopics.add(topic)
+        steak[topic] = { outputsToAdmit: [], coinsToRetain: [] }
+      }
     })
 
     await Promise.all(topicPromises)
@@ -276,11 +284,18 @@ export class Engine {
     // Broadcast the transaction if not historical and broadcaster is configured
     this.startTime(`broadcast_${txid.substring(0, 10)}`)
     if (mode !== 'historical-tx' && this.broadcaster !== undefined) {
-      const response = await this.broadcaster.broadcast(tx)
-      if (isBroadcastFailure(response) && this.throwOnBroadcastFailure) {
-        const e = new Error(`Failed to broadcast transaction! Error: ${response.description}`);
-        (e as any).more = response.more
-        throw e
+      try {
+        const response = await this.broadcaster.broadcast(tx)
+        if (isBroadcastFailure(response) && this.throwOnBroadcastFailure) {
+          const e = new Error(`Failed to broadcast transaction! Error: ${response.description}`)
+          ;(e as any).more = response.more
+          throw e
+        }
+      } catch (error) {
+        if (this.throwOnBroadcastFailure) {
+          throw error
+        }
+        this.logger.error('Error broadcasting transaction:', error)
       }
     }
     this.endTime(`broadcast_${txid.substring(0, 10)}`)
@@ -295,131 +310,141 @@ export class Engine {
       if (dupeTopics.has(topic)) {
         continue
       }
-      // Keep track of which outputs to admit, mark as stale, or retain
-      const admissibleOutputs = steak[topic]
-      const outputsToAdmit: number[] = admissibleOutputs.outputsToAdmit
-      const outputsConsumed: Array<{
-        txid: string
-        outputIndex: number
-      }> = []
+      if (failedTopics.has(topic)) {
+        continue
+      }
+      try {
+        const admissibleOutputs = steak[topic]
+        const outputsToAdmit: number[] = admissibleOutputs.outputsToAdmit
+        const outputsConsumed: Array<{
+          txid: string
+          outputIndex: number
+        }> = []
 
-      const outputsToMarkStale: Array<{
-        txid: string
-        previousOutputIndex: number
-        inputIndex: number
-      }> = []
+        const outputsToMarkStale: Array<{
+          txid: string
+          previousOutputIndex: number
+          inputIndex: number
+        }> = []
 
       // Recompute previousCoins for this topic to use in the update logic
-      const previousCoins: number[] = []
-      await Promise.all(tx.inputs.map(async (input, i) => {
-        const previousTXID = input.sourceTXID !== undefined ? input.sourceTXID : input.sourceTransaction?.id('hex')
-        if (previousTXID !== undefined) {
-          const output = await this.storage.findOutput(previousTXID, input.sourceOutputIndex, topic)
-          if (output !== undefined && output !== null) {
-            previousCoins.push(i)
-          }
-        }
-      }))
-
-      // For each of the previous UTXOs for this topic, if the UTXO was not included in the list of UTXOs identified for retention, then it will be marked as stale.
-      for (const inputIndex of previousCoins) {
-        const previousTXID = tx.inputs[inputIndex].sourceTXID ?? tx.inputs[inputIndex].sourceTransaction?.id('hex')
-        if (typeof previousTXID !== 'string') continue
-        const previousOutputIndex = tx.inputs[inputIndex].sourceOutputIndex
-        if (!admissibleOutputs.coinsToRetain.includes(inputIndex)) {
-          outputsToMarkStale.push({
-            txid: previousTXID,
-            previousOutputIndex,
-            inputIndex
-          })
-        } else {
-          outputsConsumed.push({
-            txid: previousTXID,
-            outputIndex: previousOutputIndex
-          })
-        }
-      }
-
-      // Remove stale outputs recursively
-      this.startTime(`lookForStaleOutputs_${txid.substring(0, 10)}`)
-      await Promise.all(outputsToMarkStale.map(async coin => {
-        const output = await this.storage.findOutput(coin.txid, coin.previousOutputIndex, topic)
-        if (output !== undefined && output !== null) {
-          await this.deleteUTXODeep(output)
-        }
-      }))
-      this.endTime(`lookForStaleOutputs_${txid.substring(0, 10)}`)
-
-      // Update the STEAK to indicate which coins were removed
-      steak[topic].coinsRemoved = outputsToMarkStale.map(x => x.inputIndex)
-
-      // Handle admittance and notification of incoming UTXOs
-      const newUTXOs: Array<{ txid: string, outputIndex: number }> = []
-      await Promise.all(outputsToAdmit.map(async outputIndex => {
-        if (typeof tx.outputs[outputIndex].satoshis !== 'number') return
-        this.startTime(`insertNewOutput_${txid.substring(0, 10)}`)
-        await this.storage.insertOutput({
-          txid,
-          outputIndex,
-          outputScript: tx.outputs[outputIndex].lockingScript.toBinary(),
-          satoshis: tx.outputs[outputIndex].satoshis,
-          topic,
-          spent: false,
-          beef: taggedBEEF.beef,
-          consumedBy: [],
-          outputsConsumed,
-          score: Date.now()
-        })
-        this.endTime(`insertNewOutput_${txid.substring(0, 10)}`)
-        newUTXOs.push({ txid, outputIndex })
-
-        this.startTime(`notifyLookupService${txid.substring(0, 10)}`)
-        await Promise.all(Object.values(this.lookupServices).map(async l => {
-          if (l.admissionMode === 'locking-script') {
-            if (
-              typeof tx.outputs[outputIndex].lockingScript !== 'object' ||
-              typeof tx.outputs[outputIndex].satoshis !== 'number'
-            ) {
-              return
+        const previousCoins: number[] = []
+        await Promise.all(tx.inputs.map(async (input, i) => {
+          const previousTXID = input.sourceTXID !== undefined ? input.sourceTXID : input.sourceTransaction?.id('hex')
+          if (previousTXID !== undefined) {
+            const output = await this.storage.findOutput(previousTXID, input.sourceOutputIndex, topic)
+            if (output !== undefined && output !== null) {
+              previousCoins.push(i)
             }
-            await l.outputAdmittedByTopic({
-              mode: 'locking-script',
-              txid,
-              outputIndex,
-              lockingScript: tx.outputs[outputIndex].lockingScript,
-              satoshis: tx.outputs[outputIndex].satoshis,
-              topic,
-              offChainValues
-            })
-          } else {
-            await l.outputAdmittedByTopic({
-              mode: 'whole-tx',
-              atomicBEEF: tx.toAtomicBEEF(),
-              outputIndex,
-              topic,
-              offChainValues
-            })
           }
         }))
-        this.endTime(`notifyLookupService${txid.substring(0, 10)}`)
-      }))
 
-      this.startTime(`outputConsumed_${txid.substring(0, 10)}`)
-      // Update each output consumed to know who consumed it and insert applied transaction in parallel
-      await Promise.all([
-        ...outputsConsumed.map(async output => {
-          const outputToUpdate = await this.storage.findOutput(output.txid, output.outputIndex, topic)
-          if (outputToUpdate !== undefined && outputToUpdate !== null) {
-            const newConsumedBy = [...new Set([...newUTXOs, ...outputToUpdate.consumedBy])]
-            await this.storage.updateConsumedBy(output.txid, output.outputIndex, topic, newConsumedBy)
+      // For each of the previous UTXOs for this topic, if the UTXO was not included in the list of UTXOs identified for retention, then it will be marked as stale.
+        for (const inputIndex of previousCoins) {
+          const previousTXID = tx.inputs[inputIndex].sourceTXID ?? tx.inputs[inputIndex].sourceTransaction?.id('hex')
+          if (typeof previousTXID !== 'string') continue
+          const previousOutputIndex = tx.inputs[inputIndex].sourceOutputIndex
+          if (!admissibleOutputs.coinsToRetain.includes(inputIndex)) {
+            outputsToMarkStale.push({
+              txid: previousTXID,
+              previousOutputIndex,
+              inputIndex
+            })
+          } else {
+            outputsConsumed.push({
+              txid: previousTXID,
+              outputIndex: previousOutputIndex
+            })
           }
-        }),
-        this.storage.insertAppliedTransaction({
-          txid,
-          topic
-        })
-      ])
-      this.endTime(`outputConsumed_${txid.substring(0, 10)}`)
+        }
+
+      // Remove stale outputs recursively
+        this.startTime(`lookForStaleOutputs_${txid.substring(0, 10)}`)
+        await Promise.all(outputsToMarkStale.map(async coin => {
+          const output = await this.storage.findOutput(coin.txid, coin.previousOutputIndex, topic)
+          if (output !== undefined && output !== null) {
+            await this.deleteUTXODeep(output)
+          }
+        }))
+        this.endTime(`lookForStaleOutputs_${txid.substring(0, 10)}`)
+
+      // Update the STEAK to indicate which coins were removed
+        steak[topic].coinsRemoved = outputsToMarkStale.map(x => x.inputIndex)
+
+      // Handle admittance and notification of incoming UTXOs
+        const newUTXOs: Array<{ txid: string, outputIndex: number }> = []
+        await Promise.all(outputsToAdmit.map(async outputIndex => {
+          if (typeof tx.outputs[outputIndex].satoshis !== 'number') return
+          this.startTime(`insertNewOutput_${txid.substring(0, 10)}`)
+          await this.storage.insertOutput({
+            txid,
+            outputIndex,
+            outputScript: tx.outputs[outputIndex].lockingScript.toBinary(),
+            satoshis: tx.outputs[outputIndex].satoshis,
+            topic,
+            spent: false,
+            beef: taggedBEEF.beef,
+            consumedBy: [],
+            outputsConsumed,
+            score: Date.now()
+          })
+          this.endTime(`insertNewOutput_${txid.substring(0, 10)}`)
+          newUTXOs.push({ txid, outputIndex })
+
+          this.startTime(`notifyLookupService${txid.substring(0, 10)}`)
+          await Promise.all(Object.values(this.lookupServices).map(async l => {
+            try {
+              if (l.admissionMode === 'locking-script') {
+                if (
+                  typeof tx.outputs[outputIndex].lockingScript !== 'object' ||
+                  typeof tx.outputs[outputIndex].satoshis !== 'number'
+                ) {
+                  return
+                }
+                await l.outputAdmittedByTopic({
+                  mode: 'locking-script',
+                  txid,
+                  outputIndex,
+                  lockingScript: tx.outputs[outputIndex].lockingScript,
+                  satoshis: tx.outputs[outputIndex].satoshis,
+                  topic,
+                  offChainValues
+                })
+              } else {
+                await l.outputAdmittedByTopic({
+                  mode: 'whole-tx',
+                  atomicBEEF: tx.toAtomicBEEF(),
+                  outputIndex,
+                  topic,
+                  offChainValues
+                })
+              }
+            } catch (error) {
+              this.logger.error('Error in lookup service for outputAdmittedByTopic:', error)
+            }
+          }))
+          this.endTime(`notifyLookupService${txid.substring(0, 10)}`)
+        }))
+
+        this.startTime(`outputConsumed_${txid.substring(0, 10)}`)
+      // Update each output consumed to know who consumed it and insert applied transaction in parallel
+        await Promise.all([
+          ...outputsConsumed.map(async output => {
+            const outputToUpdate = await this.storage.findOutput(output.txid, output.outputIndex, topic)
+            if (outputToUpdate !== undefined && outputToUpdate !== null) {
+              const newConsumedBy = [...new Set([...newUTXOs, ...outputToUpdate.consumedBy])]
+              await this.storage.updateConsumedBy(output.txid, output.outputIndex, topic, newConsumedBy)
+            }
+          }),
+          this.storage.insertAppliedTransaction({
+            txid,
+            topic
+          })
+        ])
+        this.endTime(`outputConsumed_${txid.substring(0, 10)}`)
+      } catch (error) {
+        this.logger.error('Error updating storage and notifying lookup services for topic', topic, error)
+      }
     }
 
     // If we don't have an advertiser or we are dealing with historical transactions, just return the steak
