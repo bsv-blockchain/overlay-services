@@ -1137,11 +1137,21 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 | [down](#function-down) | [up](#function-up) |
 | [down](#function-down) | [up](#function-up) |
 | [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
 
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void> 
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
 ### Function: down
 
 ```ts
@@ -1260,6 +1270,19 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 ---
 ### Function: up
+
+```ts
+export async function up(knex: Knex): Promise<void> 
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: up
+
+Adds optimized index for findUTXOsForTopic queries.
+This query pattern is: WHERE topic = ? AND spent = false ORDER BY score
+The composite index (topic, spent, score) enables efficient range scans.
 
 ```ts
 export async function up(knex: Knex): Promise<void> 

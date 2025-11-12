@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. The format 
 ## Table of Contents
 
 - [Unreleased](#unreleased)
+- [0.5.3 - 2025-11-11](#053---2025-11-11)
 - [0.5.0 - 2025-10-21](#050---2025-10-21)
 - [0.4.8 - 2025-09-29](#048---2025-09-29)
 - [0.4.7 - 2025-09-26](#047---2025-09-26)
@@ -33,6 +34,14 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Security
 - (Notify of any improvements related to security vulnerabilities or potential risks.)
+
+---
+
+## [0.5.3] - 2025-11-11
+
+### Changed
+- Moved broadcast before storage engine data updates in-case of broadcast failures.
+- DB index to improve performance on UTXO lookups.
 
 ---
 
