@@ -879,6 +879,9 @@ export class Engine {
             if (input.sourceTransaction !== undefined) {
               searchInput(input.sourceTransaction)
             } else {
+              console.log('roootTx: ', rootTx.toHex())
+              console.log('tx: ', tx.toHex())
+              console.log('input: ', input)
               throw new Error('Incomplete SPV data!')
             }
           }
