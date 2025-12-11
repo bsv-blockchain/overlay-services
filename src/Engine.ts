@@ -511,6 +511,13 @@ export class Engine {
     const shipBroadcaster = new SHIPBroadcaster(relevantTopics, customBroadcasterConfig)
 
     try {
+      console.log('Propagating transaction to other nodes for topics:', relevantTopics)
+      console.log(`Using Overlay Broadcast Facilitator: ${this.overlayBroadcastFacilitator.constructor.name}`)
+      console.log(`Transaction ID: ${txid}`)
+      console.log(`Hosting URL: ${this.hostingURL}`)
+      console.log(`Throw on Broadcast Failure: ${this.throwOnBroadcastFailure}`)
+      console.log('relevantTopics:', relevantTopics)
+      console.log('shipBroadcaster config:', shipBroadcaster)
       await shipBroadcaster.broadcast(tx)
     } catch (error) {
       this.logger.error('Error during propagation to other nodes:', error)
