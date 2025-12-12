@@ -814,6 +814,10 @@ export class Engine {
               true,
               true
             )
+            console.log('gasp', gasp)
+            console.log('endpoint', endpoint)
+            console.log('topic', topic)
+            console.log('default limit', DEFAULT_GASP_SYNC_LIMIT)
             await gasp.sync(endpoint, DEFAULT_GASP_SYNC_LIMIT)
 
             // Save the updated last interaction score

@@ -239,6 +239,9 @@ export class OverlayGASPStorage implements GASPStorage {
     // After sending through all the graph's BEEFs...
     // If the root node is now a coin, we have acceptance by the overlay.
     // Otherwise, throw.
+    console.log('beef', beefs)
+    console.log('graphID', graphID)
+    console.log('coins', coins)
     if (!coins.has(graphID)) {
       throw new Error('This graph did not result in topical admittance of the root node. Rejecting.')
     }
