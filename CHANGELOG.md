@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. The format 
 ## Table of Contents
 
 - [Unreleased](#unreleased)
+- [0.5.4 - 2025-12-12](#054---2025-12-12)
 - [0.5.3 - 2025-11-11](#053---2025-11-11)
 - [0.5.0 - 2025-10-21](#050---2025-10-21)
 - [0.4.8 - 2025-09-29](#048---2025-09-29)
@@ -34,6 +35,13 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Security
 - (Notify of any improvements related to security vulnerabilities or potential risks.)
+
+---
+
+## [0.5.4] - 2025-12-12
+
+### Added
+- Documentation for developers using the overlay system.
 
 ---
 
