@@ -212,7 +212,8 @@ export class Engine {
         const admissibleOutputs = await this.managers[topic].identifyAdmissibleOutputs(
           taggedBEEF.beef,
           previousCoins,
-          offChainValues
+          offChainValues,
+          mode
         )
         this.endTime(`identifyAdmissibleOutputs_${txid.substring(0, 10)}`)
 

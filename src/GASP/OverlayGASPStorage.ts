@@ -128,7 +128,12 @@ export class OverlayGASPStorage implements GASPStorage {
 
     // Attempt to check if the current transaction is admissible
     parsedTx.merklePath = MerklePath.fromHex(tx.proof)
-    const admittanceResult = await this.engine.managers[this.topic].identifyAdmissibleOutputs(parsedTx.toBEEF(), [], typeof tx.txMetadata === 'string' ? Utils.toArray(tx.txMetadata) : undefined)
+    const admittanceResult = await this.engine.managers[this.topic].identifyAdmissibleOutputs(
+      parsedTx.toBEEF(),
+      [],
+      typeof tx.txMetadata === 'string' ? Utils.toArray(tx.txMetadata) : undefined,
+      'historical-tx'
+    )
 
     if (admittanceResult.outputsToAdmit.includes(tx.outputIndex)) {
       // The transaction is admissible, no further inputs are needed
@@ -273,7 +278,12 @@ export class OverlayGASPStorage implements GASPStorage {
             }
           }
         }
-        const admittanceInstructions = await this.engine.managers[this.topic].identifyAdmissibleOutputs(beef, previousCoins)
+        const admittanceInstructions = await this.engine.managers[this.topic].identifyAdmissibleOutputs(
+          beef,
+          previousCoins,
+          undefined,
+          'historical-tx'
+        )
         // Every admitted output is now a coin.
         for (const outputIndex of admittanceInstructions.outputsToAdmit) {
           coins.add(`${tx.id('hex')}.${outputIndex}`)

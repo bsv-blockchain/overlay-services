@@ -528,12 +528,16 @@ describe('BSV Overlay Services Engine', () => {
           mockChainTracker
         )
 
-        // Submit the utxo
         await engine.submit({
           beef: exampleBeef,
           topics: ['Hello']
         })
-        expect(engine.managers.Hello.identifyAdmissibleOutputs).toHaveBeenCalledWith(exampleBeef, [0], undefined)
+        expect(engine.managers.Hello.identifyAdmissibleOutputs).toHaveBeenCalledWith(
+          exampleBeef,
+          [0],
+          undefined,
+          'current-tx'
+        )
       })
       describe('When previous UTXOs were retained by the topic manager', () => {
         it('Notifies all lookup services about the output being spent (not deleted, see the comment about this in deleteUTXODeep)', async () => {
