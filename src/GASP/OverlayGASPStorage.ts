@@ -20,12 +20,11 @@ export interface GraphNode {
 }
 
 export class OverlayGASPStorage implements GASPStorage {
-
   readonly temporaryGraphNodeRefs: Record<string, GraphNode> = {}
   private static activeAnchorValidations = 0
-  private static anchorValidationQueue: Array<() => void> = []
+  private static readonly anchorValidationQueue: Array<() => void> = []
   private static activeFinalizations = 0
-  private static finalizationQueue: Array<() => void> = []
+  private static readonly finalizationQueue: Array<() => void> = []
   private static readonly MAX_CONCURRENT_ANCHOR_VALIDATIONS = 4
   private static readonly MAX_CONCURRENT_FINALIZATIONS = 2
 
