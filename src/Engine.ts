@@ -514,13 +514,6 @@ export class Engine {
     const shipBroadcaster = new SHIPBroadcaster(relevantTopics, customBroadcasterConfig)
 
     try {
-      console.log('Propagating transaction to other nodes for topics:', relevantTopics)
-      console.log(`Using Overlay Broadcast Facilitator: ${this.overlayBroadcastFacilitator.constructor.name}`)
-      console.log(`Transaction ID: ${txid}`)
-      console.log(`Hosting URL: ${this.hostingURL}`)
-      console.log(`Throw on Broadcast Failure: ${this.throwOnBroadcastFailure}`)
-      console.log('relevantTopics:', relevantTopics)
-      console.log('shipBroadcaster config:', shipBroadcaster)
       await shipBroadcaster.broadcast(tx)
     } catch (error) {
       this.logger.error('Error during propagation to other nodes:', error)
@@ -817,10 +810,6 @@ export class Engine {
               true,
               true
             )
-            console.log('gasp', gasp)
-            console.log('endpoint', endpoint)
-            console.log('topic', topic)
-            console.log('default limit', DEFAULT_GASP_SYNC_LIMIT)
             await gasp.sync(endpoint, DEFAULT_GASP_SYNC_LIMIT)
 
             // Save the updated last interaction score
@@ -893,9 +882,6 @@ export class Engine {
             if (input.sourceTransaction !== undefined) {
               searchInput(input.sourceTransaction)
             } else {
-              console.log('roootTx: ', rootTx.toHex())
-              console.log('tx: ', tx.toHex())
-              console.log('input: ', input)
               throw new Error('Incomplete SPV data!')
             }
           }
