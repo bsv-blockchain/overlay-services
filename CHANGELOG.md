@@ -43,6 +43,13 @@ All notable changes to this project will be documented in this file. The format 
 - (Document bugs that were fixed since the last release.)
 
 
+## [0.5.4] - 2025-12-16
+
+### Changed
+- Check if transaction is already on-chain before attempting broadcast.
+
+---
+
 ## [0.5.3] - 2025-11-11
 
 ### Changed
