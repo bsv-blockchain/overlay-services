@@ -9,7 +9,12 @@ export interface TopicManager {
    * Accepts the transaction in BEEF format and an array of those input indices which spend previously-admitted outputs from the same topic.
    * The transaction's BEEF structure will always contain the transactions associated with previous coins for reference (if any), regardless of whether the current transaction was directly proven.
    */
-  identifyAdmissibleOutputs: (beef: number[], previousCoins: number[], offChainValues?: number[]) => Promise<AdmittanceInstructions>
+  identifyAdmissibleOutputs: (
+    beef: number[],
+    previousCoins: number[],
+    offChainValues?: number[],
+    mode?: 'historical-tx' | 'current-tx' | 'historical-tx-no-spv'
+  ) => Promise<AdmittanceInstructions>
 
   /**
    * Identifies and returns the inputs needed to anchor any topical outputs from this transaction to their associated previous history.

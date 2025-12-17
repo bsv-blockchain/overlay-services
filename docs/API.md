@@ -521,7 +521,7 @@ Defines a Topic Manager interface that can be implemented for specific use-cases
 
 ```ts
 export interface TopicManager {
-    identifyAdmissibleOutputs: (beef: number[], previousCoins: number[], offChainValues?: number[]) => Promise<AdmittanceInstructions>;
+    identifyAdmissibleOutputs: (beef: number[], previousCoins: number[], offChainValues?: number[], mode?: "historical-tx" | "current-tx" | "historical-tx-no-spv") => Promise<AdmittanceInstructions>;
     identifyNeededInputs?: (beef: number[], offChainValues?: number[]) => Promise<Array<{
         txid: string;
         outputIndex: number;
@@ -570,7 +570,7 @@ Accepts the transaction in BEEF format and an array of those input indices which
 The transaction's BEEF structure will always contain the transactions associated with previous coins for reference (if any), regardless of whether the current transaction was directly proven.
 
 ```ts
-identifyAdmissibleOutputs: (beef: number[], previousCoins: number[], offChainValues?: number[]) => Promise<AdmittanceInstructions>
+identifyAdmissibleOutputs: (beef: number[], previousCoins: number[], offChainValues?: number[], mode?: "historical-tx" | "current-tx" | "historical-tx-no-spv") => Promise<AdmittanceInstructions>
 ```
 
 #### Property identifyNeededInputs
@@ -613,7 +613,7 @@ export class Engine {
     }, public lookupServices: {
         [key: string]: LookupService;
     }, public storage: Storage, public chainTracker: ChainTracker | "scripts only", public hostingURL?: string, public shipTrackers?: string[], public slapTrackers?: string[], public broadcaster?: Broadcaster, public advertiser?: Advertiser, public syncConfiguration?: SyncConfiguration, public logTime = false, public logPrefix = "[OVERLAY_ENGINE] ", public throwOnBroadcastFailure = false, public overlayBroadcastFacilitator: OverlayBroadcastFacilitator = new HTTPSOverlayBroadcastFacilitator(), public logger: typeof console = console, public suppressDefaultSyncAdvertisements = true) 
-    async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" = "current-tx", offChainValues?: number[]): Promise<STEAK> 
+    async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" | "historical-tx-no-spv" = "current-tx", offChainValues?: number[]): Promise<STEAK> 
     async lookup(lookupQuestion: LookupQuestion): Promise<LookupAnswer> 
     async syncAdvertisements(): Promise<void> 
     async startGASPSync(): Promise<void> 
@@ -883,7 +883,7 @@ Error if the overlay service engine is not configured for topical synchronizatio
 Submits a transaction for processing by Overlay Services.
 
 ```ts
-async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" = "current-tx", offChainValues?: number[]): Promise<STEAK> 
+async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" | "historical-tx-no-spv" = "current-tx", offChainValues?: number[]): Promise<STEAK> 
 ```
 
 Returns
