@@ -1,5 +1,11 @@
 # Overlay Best Practices for Developers
 
+[🏠 Home](../README.md) | [📚 API](../API.md) | [💡 Concepts](./README.md) | [📖 Examples](../examples/README.md) | [⚙️ Internal](../internal/README.md)
+
+**Navigation:** [Overview](./00-overview.md) | [Best Practices](./01-best-practices.md) | [Query Performance](./02-query-performance.md) | [Database Monitoring](./03-database-monitoring.md) | [Pagination Example](./04-pagination-example.md) | [Recommendations Summary](./05-recommendations-summary.md)
+
+---
+
 ## Overview
 
 This document provides **best practices for designing and maintaining overlay services** in the BSV ecosystem. It focuses on the practical concerns of developers who are building their **own overlays**—not on BSVA internals or modifications to Overlay Express.

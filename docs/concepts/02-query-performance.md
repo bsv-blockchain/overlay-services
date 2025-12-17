@@ -1,5 +1,11 @@
 # Query Performance and Indexing for Overlays
 
+[🏠 Home](../README.md) | [📚 API](../API.md) | [💡 Concepts](./README.md) | [📖 Examples](../examples/README.md) | [⚙️ Internal](../internal/README.md)
+
+**Navigation:** [Overview](./00-overview.md) | [Best Practices](./01-best-practices.md) | [Query Performance](./02-query-performance.md) | [Database Monitoring](./03-database-monitoring.md) | [Pagination Example](./04-pagination-example.md) | [Recommendations Summary](./05-recommendations-summary.md)
+
+---
+
 ## Overview
 
 Efficient query design is critical for scalable overlay performance. Lookup Services often serve thousands of queries per day—fetching messages, reactions, and thread activity—so poor indexing or unbounded queries can quickly degrade performance.

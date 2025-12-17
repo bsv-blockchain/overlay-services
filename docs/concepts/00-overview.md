@@ -1,5 +1,11 @@
 # Overlay Use and Optimization in the BSV Ecosystem
 
+[🏠 Home](../README.md) | [📚 API](../API.md) | [💡 Concepts](./README.md) | [📖 Examples](../examples/README.md) | [⚙️ Internal](../internal/README.md)
+
+**Navigation:** [Overview](./00-overview.md) | [Best Practices](./01-best-practices.md) | [Query Performance](./02-query-performance.md) | [Database Monitoring](./03-database-monitoring.md) | [Pagination Example](./04-pagination-example.md) | [Recommendations Summary](./05-recommendations-summary.md)
+
+---
+
 ## Introduction
 
 Overlays are distributed application layers built on top of Bitcoin SV (BSV). They allow applications to publish structured data and then query it efficiently through **Lookup Services** and **Topic Managers**. This pattern enables developers to build scalable, high‑performance, privacy‑aware applications without needing to index or scan the entire blockchain themselves.

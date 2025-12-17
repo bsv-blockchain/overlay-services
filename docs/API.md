@@ -1,5 +1,9 @@
 # API
 
+[🏠 Home](./README.md) | [📚 API](./API.md) | [💡 Concepts](./concepts/README.md) | [📖 Examples](./examples/README.md) | [⚙️ Internal](./internal/README.md)
+
+---
+
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ## Interfaces
@@ -1429,3 +1433,5 @@ export type SyncConfiguration = Record<string, string[] | "SHIP" | false>
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
+
+[🏠 Home](./README.md) | [📚 API](./API.md) | [💡 Concepts](./concepts/README.md) | [📖 Examples](./examples/README.md) | [⚙️ Internal](./internal/README.md)
