@@ -52,6 +52,13 @@ All notable changes to this project will be documented in this file. The format 
 
 ---
 
+## [0.5.4] - 2025-12-12
+
+### Added
+- Documentation for developers using the overlay system.
+
+---
+
 ## [0.5.3] - 2025-11-11
 
 ### Changed
