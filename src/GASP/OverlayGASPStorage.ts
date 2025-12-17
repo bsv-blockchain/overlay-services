@@ -21,8 +21,44 @@ export interface GraphNode {
 
 export class OverlayGASPStorage implements GASPStorage {
   readonly temporaryGraphNodeRefs: Record<string, GraphNode> = {}
+  private static activeAnchorValidations = 0
+  private static readonly anchorValidationQueue: Array<() => void> = []
+  private static activeFinalizations = 0
+  private static readonly finalizationQueue: Array<() => void> = []
+  private static readonly MAX_CONCURRENT_ANCHOR_VALIDATIONS = 4
+  private static readonly MAX_CONCURRENT_FINALIZATIONS = 2
 
   constructor (public topic: string, public engine: Engine, public maxNodesInGraph?: number) { }
+
+  private static async acquireAnchorValidationSlot (): Promise<void> {
+    if (OverlayGASPStorage.activeAnchorValidations >= OverlayGASPStorage.MAX_CONCURRENT_ANCHOR_VALIDATIONS) {
+      await new Promise<void>(resolve => { OverlayGASPStorage.anchorValidationQueue.push(resolve) })
+    }
+    OverlayGASPStorage.activeAnchorValidations++
+  }
+
+  private static releaseAnchorValidationSlot (): void {
+    OverlayGASPStorage.activeAnchorValidations--
+    const next = OverlayGASPStorage.anchorValidationQueue.shift()
+    if (next !== undefined) {
+      next()
+    }
+  }
+
+  private static async acquireFinalizationSlot (): Promise<void> {
+    if (OverlayGASPStorage.activeFinalizations >= OverlayGASPStorage.MAX_CONCURRENT_FINALIZATIONS) {
+      await new Promise<void>(resolve => { OverlayGASPStorage.finalizationQueue.push(resolve) })
+    }
+    OverlayGASPStorage.activeFinalizations++
+  }
+
+  private static releaseFinalizationSlot (): void {
+    OverlayGASPStorage.activeFinalizations--
+    const next = OverlayGASPStorage.finalizationQueue.shift()
+    if (next !== undefined) {
+      next()
+    }
+  }
 
   /**
    *
@@ -91,8 +127,12 @@ export class OverlayGASPStorage implements GASPStorage {
 
     // Attempt to check if the current transaction is admissible
     parsedTx.merklePath = MerklePath.fromHex(tx.proof)
-    const admittanceResult = await this.engine.managers[this.topic].identifyAdmissibleOutputs(parsedTx.toBEEF(), [], typeof tx.txMetadata === 'string' ? Utils.toArray(tx.txMetadata) : undefined)
-
+    const admittanceResult = await this.engine.managers[this.topic].identifyAdmissibleOutputs(
+      parsedTx.toBEEF(),
+      [],
+      typeof tx.txMetadata === 'string' ? Utils.toArray(tx.txMetadata) : undefined,
+      'historical-tx'
+    )
     if (admittanceResult.outputsToAdmit.includes(tx.outputIndex)) {
       // The transaction is admissible, no further inputs are needed
     } else {
@@ -196,51 +236,61 @@ export class OverlayGASPStorage implements GASPStorage {
     * @throws If the graph is not well-anchored, according to the rules of Bitcoin or the rules of the Overlay Topic Manager.
     */
   async validateGraphAnchor (graphID: string): Promise<void> {
-    const rootNode = this.temporaryGraphNodeRefs[graphID]
-    if (rootNode === undefined) {
-      throw new Error(`Graph node with ID ${graphID} not found`)
-    }
+    await OverlayGASPStorage.acquireAnchorValidationSlot()
+    try {
+      const rootNode = this.temporaryGraphNodeRefs[graphID]
+      if (rootNode === undefined) {
+        throw new Error(`Graph node with ID ${graphID} not found`)
+      }
 
-    // Check that the root node is Bitcoin-valid.
-    const beef = this.getBEEFForNode(rootNode)
-    const spvTx = Transaction.fromBEEF(beef)
-    const isBitcoinValid = await spvTx.verify(this.engine.chainTracker)
-    if (!isBitcoinValid) {
-      throw new Error('The graph is not well-anchored according to the rules of Bitcoin.')
-    }
+      // Check that the root node is Bitcoin-valid.
+      const beef = this.getBEEFForNode(rootNode)
+      const spvTx = Transaction.fromBEEF(beef)
+      const isBitcoinValid = await spvTx.verify(this.engine.chainTracker)
+      if (!isBitcoinValid) {
+        throw new Error('The graph is not well-anchored according to the rules of Bitcoin.')
+      }
 
-    // Then, ensure the node is Overlay-valid.
-    const beefs = this.computeOrderedBEEFsForGraph(graphID)
+      // Then, ensure the node is Overlay-valid.
+      const beefs = this.computeOrderedBEEFsForGraph(graphID)
 
-    // coins: a Set of all historical coins to retain (no need to remove them), used to emulate topical admittance of previous inputs over time.
-    const coins = new Set<string>()
+      // coins: a Set of all historical coins to retain (no need to remove them), used to emulate topical admittance of previous inputs over time.
+      const coins = new Set<string>()
 
-    // Submit all historical BEEFs in order through the topic manager, tracking what would be retained until we submit the root node last.
-    // If, at the end, the root node is admitted, we have a valid overlay-specific graph.
-    for (const beef of beefs) {
-      // For any input to this transaction, see if it's a valid coin that's admitted. If so, it's a previous coin.
-      const previousCoins: number[] = []
-      const tx = Transaction.fromBEEF(beef)
-      for (const [inputIndex, input] of tx.inputs.entries()) {
-        const sourceTXID = input.sourceTXID ?? input.sourceTransaction?.id('hex')
-        if (sourceTXID != null && sourceTXID !== '') {
-          const coin = `${sourceTXID}.${input.sourceOutputIndex}`
-          if (coins.has(coin)) {
-            previousCoins.push(Number(inputIndex))
+      // Submit all historical BEEFs in order through the topic manager, tracking what would be retained until we submit the root node last.
+      // If, at the end, the root node is admitted, we have a valid overlay-specific graph.
+      for (const beef of beefs) {
+        // For any input to this transaction, see if it's a valid coin that's admitted. If so, it's a previous coin.
+        const previousCoins: number[] = []
+        const tx = Transaction.fromBEEF(beef)
+        for (const [inputIndex, input] of tx.inputs.entries()) {
+          const sourceTXID = input.sourceTXID ?? input.sourceTransaction?.id('hex')
+          if (sourceTXID != null && sourceTXID !== '') {
+            const coin = `${sourceTXID}.${input.sourceOutputIndex}`
+            if (coins.has(coin)) {
+              previousCoins.push(Number(inputIndex))
+            }
           }
         }
+        const admittanceInstructions = await this.engine.managers[this.topic].identifyAdmissibleOutputs(
+          beef,
+          previousCoins,
+          undefined,
+          'historical-tx'
+        )
+        // Every admitted output is now a coin.
+        for (const outputIndex of admittanceInstructions.outputsToAdmit) {
+          coins.add(`${tx.id('hex')}.${outputIndex}`)
+        }
       }
-      const admittanceInstructions = await this.engine.managers[this.topic].identifyAdmissibleOutputs(beef, previousCoins)
-      // Every admitted output is now a coin.
-      for (const outputIndex of admittanceInstructions.outputsToAdmit) {
-        coins.add(`${tx.id('hex')}.${outputIndex}`)
+      // After sending through all the graph's BEEFs...
+      // If the root node is now a coin, we have acceptance by the overlay.
+      // Otherwise, throw.
+      if (!coins.has(graphID)) {
+        throw new Error('This graph did not result in topical admittance of the root node. Rejecting.')
       }
-    }
-    // After sending through all the graph's BEEFs...
-    // If the root node is now a coin, we have acceptance by the overlay.
-    // Otherwise, throw.
-    if (!coins.has(graphID)) {
-      throw new Error('This graph did not result in topical admittance of the root node. Rejecting.')
+    } finally {
+      OverlayGASPStorage.releaseAnchorValidationSlot()
     }
   }
 
@@ -263,14 +313,20 @@ export class OverlayGASPStorage implements GASPStorage {
    * @param graphID The TXID and output index (in 36-byte format) for the UTXO at the root of this graph.
    */
   async finalizeGraph (graphID: string): Promise<void> {
-    const beefs = this.computeOrderedBEEFsForGraph(graphID)
+    await OverlayGASPStorage.acquireFinalizationSlot()
+    try {
+      const beefs = this.computeOrderedBEEFsForGraph(graphID)
 
-    // Submit all historical BEEFs in order, finalizing the graph for the current UTXO
-    for (const beef of beefs) {
-      await this.engine.submit({
-        beef,
-        topics: [this.topic]
-      }, () => { }, 'historical-tx')
+      // Submit all historical BEEFs in order, finalizing the graph for the current UTXO.
+      // We skip SPV verification here because validateGraphAnchor has already done it.
+      for (const beef of beefs) {
+        await this.engine.submit({
+          beef,
+          topics: [this.topic]
+        }, () => { }, 'historical-tx-no-spv')
+      }
+    } finally {
+      OverlayGASPStorage.releaseFinalizationSlot()
     }
   }
 

@@ -134,7 +134,7 @@ export class Engine {
    *
    * @returns {Promise<STEAK>} The submitted transaction execution acknowledgement
    */
-  async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: 'historical-tx' | 'current-tx' = 'current-tx', offChainValues?: number[]): Promise<STEAK> {
+  async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: 'historical-tx' | 'current-tx' | 'historical-tx-no-spv' = 'current-tx', offChainValues?: number[]): Promise<STEAK> {
     for (const t of taggedBEEF.topics) {
       if (this.managers[t] === undefined || this.managers[t] === null) {
         throw new Error(`This server does not support this topic: ${t}`)
@@ -146,10 +146,12 @@ export class Engine {
     const txid = tx.id('hex')
 
     this.startTime(`submit_${txid}`)
-    this.startTime(`chainTracker_${txid.substring(0, 10)}`)
-    const txValid = await tx.verify(this.chainTracker)
-    if (!txValid) throw new Error('Unable to verify SPV information.')
-    this.endTime(`chainTracker_${txid.substring(0, 10)}`)
+    if (mode !== 'historical-tx-no-spv') {
+      this.startTime(`chainTracker_${txid.substring(0, 10)}`)
+      const txValid = await tx.verify(this.chainTracker)
+      if (!txValid) throw new Error('Unable to verify SPV information.')
+      this.endTime(`chainTracker_${txid.substring(0, 10)}`)
+    }
 
     const steak: STEAK = {}
     const dupeTopics = new Set<string>()
@@ -212,7 +214,8 @@ export class Engine {
         const admissibleOutputs = await this.managers[topic].identifyAdmissibleOutputs(
           taggedBEEF.beef,
           previousCoins,
-          offChainValues
+          offChainValues,
+          mode
         )
         this.endTime(`identifyAdmissibleOutputs_${txid.substring(0, 10)}`)
 
@@ -499,7 +502,7 @@ export class Engine {
     }
 
     // If we don't have an advertiser or we are dealing with historical transactions, just return the steak
-    if (this.advertiser === undefined || mode === 'historical-tx') {
+    if (this.advertiser === undefined || mode === 'historical-tx' || mode === 'historical-tx-no-spv') {
       return steak
     }
 
