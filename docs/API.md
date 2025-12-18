@@ -69,48 +69,6 @@ export interface Advertiser {
 
 See also: [Advertisement](#interface-advertisement), [AdvertisementData](#interface-advertisementdata)
 
-<details>
-
-<summary>Interface Advertiser Details</summary>
-
-#### Property createAdvertisements
-
-Creates a new SHIP/SLAP advertisement for a given topic.
-
-```ts
-createAdvertisements: (adsData: AdvertisementData[]) => Promise<TaggedBEEF>
-```
-See also: [AdvertisementData](#interface-advertisementdata)
-
-#### Property findAllAdvertisements
-
-Finds all SHIP/SLAP advertisements.
-
-```ts
-findAllAdvertisements: (protocol: "SHIP" | "SLAP") => Promise<Advertisement[]>
-```
-See also: [Advertisement](#interface-advertisement)
-
-#### Property parseAdvertisement
-
-Parses an output script to extract an advertisement.
-
-```ts
-parseAdvertisement: (outputScript: Script) => Advertisement
-```
-See also: [Advertisement](#interface-advertisement)
-
-#### Property revokeAdvertisements
-
-Revokes an existing advertisement, either SHIP or SLAP.
-
-```ts
-revokeAdvertisements: (advertisements: Advertisement[]) => Promise<TaggedBEEF>
-```
-See also: [Advertisement](#interface-advertisement)
-
-</details>
-
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
@@ -124,28 +82,6 @@ export interface AppliedTransaction {
     topic: string;
 }
 ```
-
-<details>
-
-<summary>Interface AppliedTransaction Details</summary>
-
-#### Property topic
-
-Output index of the applied transaction
-
-```ts
-topic: string
-```
-
-#### Property txid
-
-TXID of the applied transaction
-
-```ts
-txid: string
-```
-
-</details>
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
@@ -193,52 +129,6 @@ export interface LookupService {
 
 See also: [AdmissionMode](#type-admissionmode), [LookupFormula](#type-lookupformula), [LookupServiceMetaData](#interface-lookupservicemetadata), [OutputAdmittedByTopic](#type-outputadmittedbytopic), [OutputSpent](#type-outputspent), [SpendNotificationMode](#type-spendnotificationmode)
 
-<details>
-
-<summary>Interface LookupService Details</summary>
-
-#### Property outputAdmittedByTopic
-
-Invoked when a Topic Manager admits a new UTXO.
-The payload shape depends on this.admissionMode.
-
-```ts
-outputAdmittedByTopic: (payload: OutputAdmittedByTopic) => Promise<void> | void
-```
-See also: [OutputAdmittedByTopic](#type-outputadmittedbytopic)
-
-#### Property outputEvicted
-
-LEGAL EVICTION:
-Permanently remove the referenced UTXO from all indices maintained by the
-Lookup Service.  After eviction the service MUST NOT reference the output
-in any future lookup answer.
-
-```ts
-outputEvicted: (txid: string, outputIndex: number) => Promise<void> | void
-```
-
-#### Property outputNoLongerRetainedInHistory
-
-Called when a Topic Manager decides that **historical retention** of the
-specified UTXO is no longer required.
-
-```ts
-outputNoLongerRetainedInHistory?: (txid: string, outputIndex: number, topic: string) => Promise<void> | void
-```
-
-#### Property outputSpent
-
-Invoked when a previously-admitted UTXO is spent.
-The payload shape depends on this.spendNotificationMode.
-
-```ts
-outputSpent?: (payload: OutputSpent) => Promise<void> | void
-```
-See also: [OutputSpent](#type-outputspent)
-
-</details>
-
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
@@ -283,90 +173,6 @@ export interface Output {
 }
 ```
 
-<details>
-
-<summary>Interface Output Details</summary>
-
-#### Property beef
-
-The transaction data for the output
-
-```ts
-beef?: number[]
-```
-
-#### Property consumedBy
-
-Outputs consuming this output
-
-```ts
-consumedBy: Array<{
-    txid: string;
-    outputIndex: number;
-}>
-```
-
-#### Property outputIndex
-
-index of the output
-
-```ts
-outputIndex: number
-```
-
-#### Property outputScript
-
-script of the output
-
-```ts
-outputScript: number[]
-```
-
-#### Property outputsConsumed
-
-Outputs consumed by the transaction associated with the output
-
-```ts
-outputsConsumed: Array<{
-    txid: string;
-    outputIndex: number;
-}>
-```
-
-#### Property satoshis
-
-number of satoshis in the output
-
-```ts
-satoshis: number
-```
-
-#### Property spent
-
-Whether the output is spent
-
-```ts
-spent: boolean
-```
-
-#### Property topic
-
-topic to which the output belongs
-
-```ts
-topic: string
-```
-
-#### Property txid
-
-TXID of the output
-
-```ts
-txid: string
-```
-
-</details>
-
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
@@ -397,125 +203,6 @@ export interface Storage {
 
 See also: [AppliedTransaction](#interface-appliedtransaction), [Output](#interface-output)
 
-<details>
-
-<summary>Interface Storage Details</summary>
-
-#### Property deleteOutput
-
-Deletes an output from storage
-
-```ts
-deleteOutput: (txid: string, outputIndex: number, topic: string) => Promise<void>
-```
-
-#### Property doesAppliedTransactionExist
-
-Checks if a duplicate transaction exists
-
-```ts
-doesAppliedTransactionExist: (tx: AppliedTransaction) => Promise<boolean>
-```
-See also: [AppliedTransaction](#interface-appliedtransaction)
-
-#### Property findOutput
-
-Finds an output from storage
-
-```ts
-findOutput: (txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF?: boolean) => Promise<Output | null>
-```
-See also: [Output](#interface-output)
-
-#### Property findOutputsForTransaction
-
-Finds outputs with a matching transaction ID from storage
-
-```ts
-findOutputsForTransaction: (txid: string, includeBEEF?: boolean) => Promise<Output[]>
-```
-See also: [Output](#interface-output)
-
-#### Property findUTXOsForTopic
-
-Finds current UTXOs that have been admitted into a given topic
-
-```ts
-findUTXOsForTopic: (topic: string, since?: number, limit?: number, includeBEEF?: boolean) => Promise<Output[]>
-```
-See also: [Output](#interface-output)
-
-#### Property getLastInteraction
-
-Retrieves the last interaction score for a given host and topic
-
-```ts
-getLastInteraction: (host: string, topic: string) => Promise<number>
-```
-
-#### Property insertAppliedTransaction
-
-Inserts record of the applied transaction
-
-```ts
-insertAppliedTransaction: (tx: AppliedTransaction) => Promise<void>
-```
-See also: [AppliedTransaction](#interface-appliedtransaction)
-
-#### Property insertOutput
-
-Adds a new output to storage
-
-```ts
-insertOutput: (utxo: Output) => Promise<void>
-```
-See also: [Output](#interface-output)
-
-#### Property markUTXOAsSpent
-
-Updates a UTXO as spent
-
-```ts
-markUTXOAsSpent: (txid: string, outputIndex: number, topic: string) => Promise<void>
-```
-
-#### Property updateConsumedBy
-
-Updates which outputs are consumed by this output
-
-```ts
-updateConsumedBy: (txid: string, outputIndex: number, topic: string, consumedBy: Array<{
-    txid: string;
-    outputIndex: number;
-}>) => Promise<void>
-```
-
-#### Property updateLastInteraction
-
-Updates the last interaction score for a given host and topic
-
-```ts
-updateLastInteraction: (host: string, topic: string, since: number) => Promise<void>
-```
-
-#### Property updateOutputBlockHeight
-
-Updates the block height on an output
-
-```ts
-updateOutputBlockHeight?: (txid: string, outputIndex: number, topic: string, blockHeight: number) => Promise<void>
-```
-
-#### Property updateTransactionBEEF
-
-Updates the beef data for a transaction
-
-```ts
-updateTransactionBEEF: (txid: string, beef: number[]) => Promise<void>
-```
-
-</details>
-
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
@@ -540,55 +227,6 @@ export interface TopicManager {
     }>;
 }
 ```
-
-<details>
-
-<summary>Interface TopicManager Details</summary>
-
-#### Property getDocumentation
-
-Returns a Markdown-formatted documentation string for the topic manager.
-
-```ts
-getDocumentation: () => Promise<string>
-```
-
-#### Property getMetaData
-
-Returns a metadata object that can be used to identify the topic manager.
-
-```ts
-getMetaData: () => Promise<{
-    name: string;
-    shortDescription: string;
-    iconURL?: string;
-    version?: string;
-    informationURL?: string;
-}>
-```
-
-#### Property identifyAdmissibleOutputs
-
-Returns instructions that denote which outputs from the provided transaction to admit into the topic, and which previous coins should be retained.
-Accepts the transaction in BEEF format and an array of those input indices which spend previously-admitted outputs from the same topic.
-The transaction's BEEF structure will always contain the transactions associated with previous coins for reference (if any), regardless of whether the current transaction was directly proven.
-
-```ts
-identifyAdmissibleOutputs: (beef: number[], previousCoins: number[], offChainValues?: number[], mode?: "historical-tx" | "current-tx" | "historical-tx-no-spv") => Promise<AdmittanceInstructions>
-```
-
-#### Property identifyNeededInputs
-
-Identifies and returns the inputs needed to anchor any topical outputs from this transaction to their associated previous history.
-
-```ts
-identifyNeededInputs?: (beef: number[], offChainValues?: number[]) => Promise<Array<{
-    txid: string;
-    outputIndex: number;
-}>>
-```
-
-</details>
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
@@ -1132,16 +770,10 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 ## Functions
 
-| | |
-| --- | --- |
-| [down](#function-down) | [up](#function-up) |
-| [down](#function-down) | [up](#function-up) |
-| [down](#function-down) | [up](#function-up) |
-| [down](#function-down) | [up](#function-up) |
-| [down](#function-down) | [up](#function-up) |
-| [down](#function-down) | [up](#function-up) |
-| [down](#function-down) | [up](#function-up) |
-| [down](#function-down) | [up](#function-up) |
+| |
+| --- |
+| [down](#function-down) |
+| [up](#function-up) |
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
@@ -1150,133 +782,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ### Function: down
 
 ```ts
-export async function down(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: down
-
-```ts
-export async function down(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: down
-
-```ts
-export async function down(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: down
-
-```ts
-export async function down(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: down
-
-```ts
-export async function down(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: down
-
-```ts
-export async function down(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: down
-
-```ts
-export async function down(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: down
-
-```ts
-export async function down(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: up
-
-```ts
-export async function up(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: up
-
-```ts
-export async function up(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: up
-
-```ts
-export async function up(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: up
-
-```ts
-export async function up(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: up
-
-```ts
-export async function up(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: up
-
-```ts
-export async function up(knex: Knex): Promise<void> 
-```
-
-Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
-
----
-### Function: up
-
-```ts
-export async function up(knex: Knex): Promise<void> 
+export async function down(knex: Knex): Promise<void>
 ```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
@@ -1289,7 +795,7 @@ This query pattern is: WHERE topic = ? AND spent = false ORDER BY score
 The composite index (topic, spent, score) enables efficient range scans.
 
 ```ts
-export async function up(knex: Knex): Promise<void> 
+export async function up(knex: Knex): Promise<void>
 ```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
@@ -1435,3 +941,4 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 [🏠 Home](./README.md) | [📚 API](./API.md) | [💡 Concepts](./concepts/README.md) | [📖 Examples](./examples/README.md) | [⚙️ Internal](./internal/README.md)
+
