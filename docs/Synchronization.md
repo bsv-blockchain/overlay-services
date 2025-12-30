@@ -104,7 +104,7 @@ server.configureEnableGASPSync(true)
 
 ## **Overlay Express Setup Example**
 
-```
+```ts
 import { WalletAdvertiser } from '@bsv/overlay-discovery-services'
 import OverlayExpress from '@bsv/overlay-express'
 import { config } from 'dotenv'
