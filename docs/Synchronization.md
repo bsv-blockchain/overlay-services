@@ -169,19 +169,11 @@ const main = async () => {
 main()
 ```
 
-
-## **Validation**
-
-  
+# **Validation**
 
 A practical way to validate sync is to compare per-topic records in your SQL database before and after sync.
 
-  
-
 Example (adapt the table/query to your schema):
-
-  
-
 ### **Before sync**
 
 ```
