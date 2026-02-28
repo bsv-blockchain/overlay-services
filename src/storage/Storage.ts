@@ -31,6 +31,17 @@ export interface Storage {
   findOutput: (txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF?: boolean) => Promise<Output | null>
 
   /**
+   * Finds multiple outputs from storage by txid/output index pairs.
+   * Implementations can use this to collapse many point lookups into a single query.
+   * @param outpoints — txid/output index pairs to find
+   * @param includeBEEF — Whether to include the BEEF data for the outputs (optional)
+   */
+  findOutputsByOutpoints?: (
+    outpoints: Array<{ txid: string, outputIndex: number }>,
+    includeBEEF?: boolean
+  ) => Promise<Output[]>
+
+  /**
    * Finds outputs with a matching transaction ID from storage
    * @param txid — TXID of the outputs to find
    * @param includeBEEF — Whether to include the BEEF data for the outputs (optional)

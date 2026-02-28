@@ -845,6 +845,34 @@ describe('BSV Overlay Services Engine', () => {
           query: { name: 'Bob' }
         })
       })
+      it('Uses batched output loading when the storage engine supports it', async () => {
+        mockLookupService.lookup = jest.fn(async () => [{
+          txid: 'mockTXID',
+          outputIndex: 0,
+          history: undefined
+        }])
+        mockStorageEngine.findOutput = jest.fn(async () => mockOutput)
+        const findOutputsByOutpoints = jest.fn(async () => [mockOutput])
+        ;(mockStorageEngine as Storage).findOutputsByOutpoints = findOutputsByOutpoints
+        const engine = new Engine(
+          {
+            Hello: mockTopicManager
+          },
+          {
+            Hello: mockLookupService
+          },
+          mockStorageEngine,
+          mockChainTracker
+        )
+
+        await engine.lookup({
+          service: 'Hello',
+          query: { name: 'Bob' }
+        })
+
+        expect(findOutputsByOutpoints).toHaveBeenCalledWith([{ txid: 'mockTXID', outputIndex: 0 }], true)
+        expect(mockStorageEngine.findOutput).not.toHaveBeenCalled()
+      })
       describe('For each returned result', () => {
         it('Finds the identified UTXO by its txid and vout', async () => {
           // TODO: Make the default storage engine return something...?

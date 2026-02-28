@@ -552,6 +552,10 @@ export class Engine {
 
     const lookupResult = await lookupService.lookup(lookupQuestion)
     const hydrationContext = this.createUTXOHistoryHydrationContext()
+    await this.preloadOutputsWithBEEF(
+      lookupResult.map(({ txid, outputIndex }) => ({ txid, outputIndex })),
+      hydrationContext
+    )
     const hydratedOutputs = (await Promise.all(
       lookupResult.map(async ({ txid, outputIndex, history, context }) => {
         const UTXO = await this.loadOutputWithBEEF(txid, outputIndex, hydrationContext)
@@ -590,12 +594,66 @@ export class Engine {
     }
   }
 
+  private toOutputCacheKey(txid: string, outputIndex: number): string {
+    return `${txid}:${outputIndex}`
+  }
+
+  private async preloadOutputsWithBEEF(
+    outpoints: Array<{ txid: string, outputIndex: number }>,
+    context: UTXOHistoryHydrationContext
+  ): Promise<void> {
+    if (outpoints.length === 0) {
+      return
+    }
+
+    const deduped: Array<{ txid: string, outputIndex: number }> = []
+    const seen = new Set<string>()
+
+    for (const outpoint of outpoints) {
+      const cacheKey = this.toOutputCacheKey(outpoint.txid, outpoint.outputIndex)
+      if (seen.has(cacheKey)) {
+        continue
+      }
+      seen.add(cacheKey)
+      if (!context.outputCache.has(cacheKey)) {
+        deduped.push(outpoint)
+      }
+    }
+
+    if (deduped.length === 0) {
+      return
+    }
+
+    const findOutputsByOutpoints = this.storage.findOutputsByOutpoints
+    if (typeof findOutputsByOutpoints === 'function') {
+      const outputs = await findOutputsByOutpoints.call(this.storage, deduped, true)
+      const outputsByKey = new Map<string, Output>()
+      for (const output of outputs) {
+        outputsByKey.set(this.toOutputCacheKey(output.txid, output.outputIndex), output)
+      }
+
+      for (const outpoint of deduped) {
+        const cacheKey = this.toOutputCacheKey(outpoint.txid, outpoint.outputIndex)
+        context.outputCache.set(cacheKey, Promise.resolve(outputsByKey.get(cacheKey) ?? null))
+      }
+      return
+    }
+
+    for (const outpoint of deduped) {
+      const cacheKey = this.toOutputCacheKey(outpoint.txid, outpoint.outputIndex)
+      context.outputCache.set(
+        cacheKey,
+        this.storage.findOutput(outpoint.txid, outpoint.outputIndex, undefined, undefined, true)
+      )
+    }
+  }
+
   private async loadOutputWithBEEF(
     txid: string,
     outputIndex: number,
     context: UTXOHistoryHydrationContext
   ): Promise<Output | null> {
-    const cacheKey = `${txid}:${outputIndex}`
+    const cacheKey = this.toOutputCacheKey(txid, outputIndex)
     let cached = context.outputCache.get(cacheKey)
     if (cached === undefined) {
       cached = this.storage.findOutput(txid, outputIndex, undefined, undefined, true)
@@ -626,6 +684,8 @@ export class Engine {
       return undefined
     }
 
+    await this.preloadOutputsWithBEEF(output.outputsConsumed, context)
+
     const childNodes = (await Promise.all(
       output.outputsConsumed.map(async (outputIdentifier) => {
         const childOutput = await this.loadOutputWithBEEF(outputIdentifier.txid, outputIdentifier.outputIndex, context)
@@ -638,15 +698,21 @@ export class Engine {
     )).filter((node): node is HydratedUTXOHistoryNode => node !== undefined)
 
     const tx = Transaction.fromBEEF(output.beef)
+    const inputIndexBySource = new Map<string, number>()
+    tx.inputs.forEach((candidateInput, index) => {
+      const sourceTXID = candidateInput.sourceTXID !== undefined && candidateInput.sourceTXID !== ''
+        ? candidateInput.sourceTXID
+        : candidateInput.sourceTransaction?.id('hex')
+
+      if (sourceTXID === undefined) {
+        return
+      }
+
+      inputIndexBySource.set(`${sourceTXID}:${candidateInput.sourceOutputIndex}`, index)
+    })
 
     for (const child of childNodes) {
-      const inputIndex = tx.inputs.findIndex((candidateInput) => {
-        const sourceTXID = candidateInput.sourceTXID !== undefined && candidateInput.sourceTXID !== ''
-          ? candidateInput.sourceTXID
-          : candidateInput.sourceTransaction?.id('hex')
-
-        return sourceTXID === child.output.txid && candidateInput.sourceOutputIndex === child.output.outputIndex
-      })
+      const inputIndex = inputIndexBySource.get(`${child.output.txid}:${child.output.outputIndex}`)
 
       if (inputIndex === -1 || inputIndex == null) {
         continue
