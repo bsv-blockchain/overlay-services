@@ -853,7 +853,7 @@ describe('BSV Overlay Services Engine', () => {
         }])
         mockStorageEngine.findOutput = jest.fn(async () => mockOutput)
         const findOutputsByOutpoints = jest.fn(async () => [mockOutput])
-        ;(mockStorageEngine as Storage).findOutputsByOutpoints = findOutputsByOutpoints
+        ;(mockStorageEngine).findOutputsByOutpoints = findOutputsByOutpoints
         const engine = new Engine(
           {
             Hello: mockTopicManager
