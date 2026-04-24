@@ -23,7 +23,7 @@ All notable changes to this project will be documented in this file. The format 
 - (Include new features or significant user-visible enhancements here.)
 
 ### Changed
-- (Detail modifications that are non-breaking but relevant to the end-users.)
+- Refreshed the getting-started documentation to align direct `@bsv/overlay` usage with the current `@bsv/sdk`, Overlay Express, LARS, and CARS application workflow.
 
 ### Deprecated
 - (List features that are in the process of being phased out or replaced.)

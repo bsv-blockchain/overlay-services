@@ -23,243 +23,123 @@ The Overlay Services Engine enables dynamic tracking and management of UTXO-base
 
 ## Getting Started
 
+### Choose the Right Package
+
+Most application developers should start with the higher-level deployment tools:
+
+- [`@bsv/overlay-express`](https://github.com/bsv-blockchain/overlay-express): opinionated Express wrapper for running overlay nodes with HTTP routes, health checks, storage configuration, SHIP/SLAP discovery, and GASP synchronization.
+- [`@bsv/lars`](https://github.com/bsv-blockchain/lars): local runtime for BSV application projects that use `deployment-info.json`.
+- [`@bsv/cars-cli`](https://github.com/bsv-blockchain/cars-cli): cloud deployment workflow for the same `deployment-info.json` project structure.
+
+Use this package, `@bsv/overlay`, when you need direct control over the Overlay Services Engine itself, such as custom storage, custom broadcasting, or a non-Express host.
+
 ### Installation
 
-You'll usually want to wrap the Engine within an HTTP server. To get set up with Express, create a new project and install everything you'll need:
+For direct engine integration, install the engine with the current BSV TypeScript SDK:
 
 ```
-npm i express body-parser @bsv/sdk @bsv/overlay hello-services knex
+npm i @bsv/overlay @bsv/sdk knex
 ```
 
 ### Basic Usage
 
-In your server's main file, you can set everything up. Create a new Engine to run the overlay services you want, then expose some routes over HTTP. For example:
+Create an `Engine` with topic managers, lookup services, a storage implementation, and a chain tracker. The example below uses minimal in-memory stubs so the shape is clear. Production services should use durable storage, a real chain tracker, and a broadcaster appropriate for the target network.
 
-```js
-const express = require('express')
-const bodyparser = require('body-parser')
-const { Engine, KnexStorage, HelloTopicManager, HelloLookupService, HelloStorageEngine } = require('@bsv/overlay')
-import { WhatsOnChain, NodejsHttpClient, ARC, ArcConfig, MerklePath } from '@bsv/sdk'
-// Populate a Knexfile with your database credentials
-const knex = require('knex')(require('../knexfile.js'))
-const app = express()
-app.use(bodyparser.json({ limit: '1gb', type: 'application/json' }))
+```ts
+import {
+  Engine,
+  type AdmittanceInstructions,
+  type LookupFormula,
+  type LookupQuestion,
+  type Output,
+  type Storage,
+  type TopicManager,
+  type LookupService
+} from '@bsv/overlay'
+
+const topicManager: TopicManager = {
+  async identifyAdmissibleOutputs (): Promise<AdmittanceInstructions> {
+    return {
+      outputsToAdmit: [],
+      coinsToRetain: []
+    }
+  },
+  async getDocumentation () {
+    return 'Admits outputs for the example topic.'
+  },
+  async getMetaData () {
+    return {
+      name: 'Example Topic Manager',
+      shortDescription: 'Example topic manager',
+      iconURL: '',
+      version: '1.0.0',
+      informationURL: ''
+    }
+  }
+}
+
+const lookupService: LookupService = {
+  async outputAdmittedByTopic (): Promise<void> {},
+  async outputSpent (): Promise<void> {},
+  async outputEvicted (): Promise<void> {},
+  async lookup (_question: LookupQuestion): Promise<LookupFormula> {
+    return {
+      type: 'formula',
+      outpoints: []
+    }
+  },
+  async getDocumentation () {
+    return 'Looks up outputs admitted by the example topic.'
+  },
+  async getMetaData () {
+    return {
+      name: 'Example Lookup Service',
+      shortDescription: 'Example lookup service',
+      iconURL: '',
+      version: '1.0.0',
+      informationURL: ''
+    }
+  }
+}
+
+const storage: Storage = {
+  async findOutput (): Promise<Output | null> { return null },
+  async findOutputsForTransaction (): Promise<Output[]> { return [] },
+  async findOutputsForTopic (): Promise<Output[]> { return [] },
+  async findUTXOHistory (): Promise<Output[]> { return [] },
+  async insertOutput (): Promise<void> {},
+  async updateConsumedBy (): Promise<void> {},
+  async updateTransactionBEEF (): Promise<void> {},
+  async deleteOutput (): Promise<void> {},
+  async startGASPSync (): Promise<void> {},
+  async updateLastInteraction (): Promise<void> {},
+  async getLastInteraction (): Promise<Date | null> { return null },
+  async getSyncState (): Promise<unknown> { return undefined },
+  async setSyncState (): Promise<void> {}
+}
 
 const engine = new Engine(
-    {
-      hello: new HelloTopicManager(),
-    },
-    {
-      hello: new HelloLookupService({
-        storageEngine: new HelloStorageEngine({
-          knex
-        })
-      }),
-    },
-    new KnexStorageEngine({
-      knex
-    }),
-    new CombinatorialChainTracker([
-      new WhatsOnChain(
-        NODE_ENV === 'production' ? 'main' : 'test',
-        {
-          httpClient: new NodejsHttpClient(https)
-        })
-    ]),
-    HOSTING_DOMAIN as string,
-    SHIP_TRACKERS,
-    SLAP_TRACKERS,
-    new ARC('https://arc.taal.com', arcConfig)
-  )
+  { tm_example: topicManager },
+  { ls_example: lookupService },
+  storage,
+  'scripts only',
+  'https://example-overlay.example',
+  [],
+  [],
+  undefined,
+  undefined,
+  { tm_example: false }
+)
 
-// This allows the API to be used everywhere when CORS is enforced
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Headers', '*')
-  res.header('Access-Control-Allow-Methods', '*')
-  res.header('Access-Control-Expose-Headers', '*')
-  res.header('Access-Control-Allow-Private-Network', 'true')
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200)
-  } else {
-    next()
-  }
-})
-
-// Serve a static documentstion site, if you have one.
-app.use(express.static('public'))
-
-// List hosted topic managers and lookup services
-app.get(`/listTopicManagers`, async (req, res) => {
-  try {
-    const result = await engine.listTopicManagers()
-    return res.status(200).json(result)
-  } catch (error) {
-    return res.status(400).json({
-      status: 'error',
-      code: error.code,
-      description: error.message
-    })
-  }
-})
-app.get(`/listLookupServiceProviders`, async (req, res) => {
-  try {
-    const result = await engine.listLookupServiceProviders()
-    return res.status(200).json(result)
-  } catch (error) {
-    return res.status(400).json({
-      status: 'error',
-      code: error.code,
-      description: error.message
-    })
-  }
-})
-
-// Host documentation for the services
-app.get(`/getDocumentationForTopicManager`, async (req, res) => {
-  try {
-    const result = await engine.getDocumentationForTopicManger(req.query.manager)
-    return res.status(200).json(result)
-  } catch (error) {
-    return res.status(400).json({
-      status: 'error',
-      code: error.code,
-      description: error.message
-    })
-  }
-})
-app.get(`/getDocumentationForLookupServiceProvider`, async (req, res) => {
-  try {
-    const result = await engine.getDocumentationForLookupServiceProvider(req.query.lookupServices)
-    return res.status(200).json(result)
-  } catch (error) {
-    return res.status(400).json({
-      status: 'error',
-      code: error.code,
-      description: error.message
-    })
-  }
-})
-
-// Submit transactions and facilitate lookup requests
-app.post(`/submit`, async (req, res) => {
-  try {
-    // Parse out the topics and construct the tagged BEEF
-    const topics = JSON.parse(req.headers['x-topics'] as string)
-    const taggedBEEF: TaggedBEEF = {
-      beef: Array.from(req.body as number[]),
-      topics
-    }
-
-    // Using a callback function, we can just return once our steak is ready
-    // instead of having to wait for all the broadcasts to occur.
-    await engine.submit(taggedBEEF, (steak: STEAK) => {
-      return res.status(200).json(steak)
-    })
-  } catch (error) {
-    return res.status(400).json({
-      status: 'error',
-      code: error.code,
-      description: error.message
-    })
-  }
-})
-app.post(`/lookup`, async (req, res) => {
-  try {
-    const result = await engine.lookup(req.body)
-    return res.status(200).json(result)
-  } catch (error) {
-    return res.status(400).json({
-      status: 'error',
-      code: error.code,
-      description: error.message
-    })
-  }
-})
-
-app.post('/arc-ingest', (req, res) => {
-  (async () => {
-    try {
-      const merklePath = MerklePath.fromHex(req.body.merklePath)
-      await engine.handleNewMerkleProof(req.body.txid, merklePath, req.body.blockHeight)
-      return res.status(200).json({ status: 'success', message: 'transaction status updated' })
-    } catch (error) {
-      console.error(error)
-      return res.status(400).json({
-        status: 'error',
-        message: error instanceof Error ? error.message : 'An unknown error occurred'
-      })
-    }
-  })().catch(() => {
-    res.status(500).json({
-      status: 'error',
-      message: 'Unexpected error'
-    })
-  })
-})
-
-app.post('/requestSyncResponse', (req, res) => {
-  (async () => {
-    try {
-      const topic = req.headers['x-bsv-topic'] as string
-      const response = await engine.provideForeignSyncResponse(req.body, topic)
-      return res.status(200).json(response)
-    } catch (error) {
-      console.error(error)
-      return res.status(400).json({
-        status: 'error',
-        message: error instanceof Error ? error.message : 'An unknown error occurred'
-      })
-    }
-  })().catch(() => {
-    res.status(500).json({
-      status: 'error',
-      message: 'Unexpected error'
-    })
-  })
-})
-
-app.post('/requestForeignGASPNode', (req, res) => {
-  (async () => {
-    try {
-      console.log(req.body)
-      const { graphID, txid, outputIndex, metadata } = req.body
-      const response = await engine.provideForeignGASPNode(graphID, txid, outputIndex)
-      return res.status(200).json(response)
-    } catch (error) {
-      console.error(error)
-      return res.status(400).json({
-        status: 'error',
-        message: error instanceof Error ? error.message : 'An unknown error occurred'
-      })
-    }
-  })().catch(() => {
-    res.status(500).json({
-      status: 'error',
-      message: 'Unexpected error'
-    })
-  })
-})
-
-// 404, all other routes are not found.
-app.use((req, res) => {
-  console.log('404', req.url)
-  res.status(404).json({
-    status: 'error',
-    code: 'ERR_ROUTE_NOT_FOUND',
-    description: 'Route not found.'
-  })
-})
-
-// Start your Engines!
-  app.listen(8080, () => {
-    console.log('BSV Overlay Services Engine is listening on port', 8080)
-  })
+const topics = await engine.listTopicManagers()
+const services = await engine.listLookupServiceProviders()
 ```
 
-For more detailed tutorials and examples, check out the [full documentation](#documentation).
+For deployable HTTP examples, use [`@bsv/overlay-express`](https://github.com/bsv-blockchain/overlay-express) and [`overlay-express-examples`](https://github.com/bsv-blockchain/overlay-express-examples). For local and cloud application runtime workflows, use LARS and CARS with the BRC-102 `deployment-info.json` project structure.
 
-The Overlay Services Engine is also richly documented with code-level annotations. This should show up well within editors like VSCode. 
+For lower-level engine examples, check out the [full documentation](#documentation).
+
+The Overlay Services Engine is also richly documented with code-level annotations. This should show up well within editors like VSCode.
 
 <!-- ## Documentation
 
@@ -271,10 +151,10 @@ The Overlay Services Engine is also richly documented with code-level annotation
 - History management and state tracking
 - Lookup Services
 - Storage engine abstractions
-- [WIP] Examples, HTTP wrapper and Docs
-- [WIP] Arc Proof Acquisition
-- [WIP] Distributed Overlay Availability Advertisements
-- [WIP] Federated Transaction Synchronization
+- Examples, HTTP wrapper, and docs through `@bsv/overlay-express`
+- ARC callback handling through overlay hosts
+- Distributed overlay availability advertisements with SHIP and SLAP
+- Federated transaction synchronization with GASP
 
 ## Contribution Guidelines
 
