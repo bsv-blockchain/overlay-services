@@ -1,9 +1,5 @@
 # API
 
-[🏠 Home](./README.md) | [📚 API](./API.md) | [💡 Concepts](./concepts/README.md) | [📖 Examples](./examples/README.md) | [⚙️ Internal](./internal/README.md)
-
----
-
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ## Interfaces
@@ -69,6 +65,48 @@ export interface Advertiser {
 
 See also: [Advertisement](#interface-advertisement), [AdvertisementData](#interface-advertisementdata)
 
+<details>
+
+<summary>Interface Advertiser Details</summary>
+
+#### Property createAdvertisements
+
+Creates a new SHIP/SLAP advertisement for a given topic.
+
+```ts
+createAdvertisements: (adsData: AdvertisementData[]) => Promise<TaggedBEEF>
+```
+See also: [AdvertisementData](#interface-advertisementdata)
+
+#### Property findAllAdvertisements
+
+Finds all SHIP/SLAP advertisements.
+
+```ts
+findAllAdvertisements: (protocol: "SHIP" | "SLAP") => Promise<Advertisement[]>
+```
+See also: [Advertisement](#interface-advertisement)
+
+#### Property parseAdvertisement
+
+Parses an output script to extract an advertisement.
+
+```ts
+parseAdvertisement: (outputScript: Script) => Advertisement
+```
+See also: [Advertisement](#interface-advertisement)
+
+#### Property revokeAdvertisements
+
+Revokes an existing advertisement, either SHIP or SLAP.
+
+```ts
+revokeAdvertisements: (advertisements: Advertisement[]) => Promise<TaggedBEEF>
+```
+See also: [Advertisement](#interface-advertisement)
+
+</details>
+
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
@@ -82,6 +120,28 @@ export interface AppliedTransaction {
     topic: string;
 }
 ```
+
+<details>
+
+<summary>Interface AppliedTransaction Details</summary>
+
+#### Property topic
+
+Output index of the applied transaction
+
+```ts
+topic: string
+```
+
+#### Property txid
+
+TXID of the applied transaction
+
+```ts
+txid: string
+```
+
+</details>
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
@@ -129,6 +189,52 @@ export interface LookupService {
 
 See also: [AdmissionMode](#type-admissionmode), [LookupFormula](#type-lookupformula), [LookupServiceMetaData](#interface-lookupservicemetadata), [OutputAdmittedByTopic](#type-outputadmittedbytopic), [OutputSpent](#type-outputspent), [SpendNotificationMode](#type-spendnotificationmode)
 
+<details>
+
+<summary>Interface LookupService Details</summary>
+
+#### Property outputAdmittedByTopic
+
+Invoked when a Topic Manager admits a new UTXO.
+The payload shape depends on this.admissionMode.
+
+```ts
+outputAdmittedByTopic: (payload: OutputAdmittedByTopic) => Promise<void> | void
+```
+See also: [OutputAdmittedByTopic](#type-outputadmittedbytopic)
+
+#### Property outputEvicted
+
+LEGAL EVICTION:
+Permanently remove the referenced UTXO from all indices maintained by the
+Lookup Service.  After eviction the service MUST NOT reference the output
+in any future lookup answer.
+
+```ts
+outputEvicted: (txid: string, outputIndex: number) => Promise<void> | void
+```
+
+#### Property outputNoLongerRetainedInHistory
+
+Called when a Topic Manager decides that **historical retention** of the
+specified UTXO is no longer required.
+
+```ts
+outputNoLongerRetainedInHistory?: (txid: string, outputIndex: number, topic: string) => Promise<void> | void
+```
+
+#### Property outputSpent
+
+Invoked when a previously-admitted UTXO is spent.
+The payload shape depends on this.spendNotificationMode.
+
+```ts
+outputSpent?: (payload: OutputSpent) => Promise<void> | void
+```
+See also: [OutputSpent](#type-outputspent)
+
+</details>
+
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
@@ -173,6 +279,90 @@ export interface Output {
 }
 ```
 
+<details>
+
+<summary>Interface Output Details</summary>
+
+#### Property beef
+
+The transaction data for the output
+
+```ts
+beef?: number[]
+```
+
+#### Property consumedBy
+
+Outputs consuming this output
+
+```ts
+consumedBy: Array<{
+    txid: string;
+    outputIndex: number;
+}>
+```
+
+#### Property outputIndex
+
+index of the output
+
+```ts
+outputIndex: number
+```
+
+#### Property outputScript
+
+script of the output
+
+```ts
+outputScript: number[]
+```
+
+#### Property outputsConsumed
+
+Outputs consumed by the transaction associated with the output
+
+```ts
+outputsConsumed: Array<{
+    txid: string;
+    outputIndex: number;
+}>
+```
+
+#### Property satoshis
+
+number of satoshis in the output
+
+```ts
+satoshis: number
+```
+
+#### Property spent
+
+Whether the output is spent
+
+```ts
+spent: boolean
+```
+
+#### Property topic
+
+topic to which the output belongs
+
+```ts
+topic: string
+```
+
+#### Property txid
+
+TXID of the output
+
+```ts
+txid: string
+```
+
+</details>
+
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
@@ -184,6 +374,10 @@ Defines the Storage Engine interface used internally by the Overlay Services Eng
 export interface Storage {
     insertOutput: (utxo: Output) => Promise<void>;
     findOutput: (txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF?: boolean) => Promise<Output | null>;
+    findOutputsByOutpoints?: (outpoints: Array<{
+        txid: string;
+        outputIndex: number;
+    }>, includeBEEF?: boolean) => Promise<Output[]>;
     findOutputsForTransaction: (txid: string, includeBEEF?: boolean) => Promise<Output[]>;
     findUTXOsForTopic: (topic: string, since?: number, limit?: number, includeBEEF?: boolean) => Promise<Output[]>;
     deleteOutput: (txid: string, outputIndex: number, topic: string) => Promise<void>;
@@ -202,6 +396,138 @@ export interface Storage {
 ```
 
 See also: [AppliedTransaction](#interface-appliedtransaction), [Output](#interface-output)
+
+<details>
+
+<summary>Interface Storage Details</summary>
+
+#### Property deleteOutput
+
+Deletes an output from storage
+
+```ts
+deleteOutput: (txid: string, outputIndex: number, topic: string) => Promise<void>
+```
+
+#### Property doesAppliedTransactionExist
+
+Checks if a duplicate transaction exists
+
+```ts
+doesAppliedTransactionExist: (tx: AppliedTransaction) => Promise<boolean>
+```
+See also: [AppliedTransaction](#interface-appliedtransaction)
+
+#### Property findOutput
+
+Finds an output from storage
+
+```ts
+findOutput: (txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF?: boolean) => Promise<Output | null>
+```
+See also: [Output](#interface-output)
+
+#### Property findOutputsByOutpoints
+
+Finds multiple outputs from storage by txid/output index pairs.
+Implementations can use this to collapse many point lookups into a single query.
+
+```ts
+findOutputsByOutpoints?: (outpoints: Array<{
+    txid: string;
+    outputIndex: number;
+}>, includeBEEF?: boolean) => Promise<Output[]>
+```
+See also: [Output](#interface-output)
+
+#### Property findOutputsForTransaction
+
+Finds outputs with a matching transaction ID from storage
+
+```ts
+findOutputsForTransaction: (txid: string, includeBEEF?: boolean) => Promise<Output[]>
+```
+See also: [Output](#interface-output)
+
+#### Property findUTXOsForTopic
+
+Finds current UTXOs that have been admitted into a given topic
+
+```ts
+findUTXOsForTopic: (topic: string, since?: number, limit?: number, includeBEEF?: boolean) => Promise<Output[]>
+```
+See also: [Output](#interface-output)
+
+#### Property getLastInteraction
+
+Retrieves the last interaction score for a given host and topic
+
+```ts
+getLastInteraction: (host: string, topic: string) => Promise<number>
+```
+
+#### Property insertAppliedTransaction
+
+Inserts record of the applied transaction
+
+```ts
+insertAppliedTransaction: (tx: AppliedTransaction) => Promise<void>
+```
+See also: [AppliedTransaction](#interface-appliedtransaction)
+
+#### Property insertOutput
+
+Adds a new output to storage
+
+```ts
+insertOutput: (utxo: Output) => Promise<void>
+```
+See also: [Output](#interface-output)
+
+#### Property markUTXOAsSpent
+
+Updates a UTXO as spent
+
+```ts
+markUTXOAsSpent: (txid: string, outputIndex: number, topic: string) => Promise<void>
+```
+
+#### Property updateConsumedBy
+
+Updates which outputs are consumed by this output
+
+```ts
+updateConsumedBy: (txid: string, outputIndex: number, topic: string, consumedBy: Array<{
+    txid: string;
+    outputIndex: number;
+}>) => Promise<void>
+```
+
+#### Property updateLastInteraction
+
+Updates the last interaction score for a given host and topic
+
+```ts
+updateLastInteraction: (host: string, topic: string, since: number) => Promise<void>
+```
+
+#### Property updateOutputBlockHeight
+
+Updates the block height on an output
+
+```ts
+updateOutputBlockHeight?: (txid: string, outputIndex: number, topic: string, blockHeight: number) => Promise<void>
+```
+
+#### Property updateTransactionBEEF
+
+Updates the beef data for a transaction
+
+```ts
+updateTransactionBEEF: (txid: string, beef: number[]) => Promise<void>
+```
+
+</details>
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
@@ -227,6 +553,55 @@ export interface TopicManager {
     }>;
 }
 ```
+
+<details>
+
+<summary>Interface TopicManager Details</summary>
+
+#### Property getDocumentation
+
+Returns a Markdown-formatted documentation string for the topic manager.
+
+```ts
+getDocumentation: () => Promise<string>
+```
+
+#### Property getMetaData
+
+Returns a metadata object that can be used to identify the topic manager.
+
+```ts
+getMetaData: () => Promise<{
+    name: string;
+    shortDescription: string;
+    iconURL?: string;
+    version?: string;
+    informationURL?: string;
+}>
+```
+
+#### Property identifyAdmissibleOutputs
+
+Returns instructions that denote which outputs from the provided transaction to admit into the topic, and which previous coins should be retained.
+Accepts the transaction in BEEF format and an array of those input indices which spend previously-admitted outputs from the same topic.
+The transaction's BEEF structure will always contain the transactions associated with previous coins for reference (if any), regardless of whether the current transaction was directly proven.
+
+```ts
+identifyAdmissibleOutputs: (beef: number[], previousCoins: number[], offChainValues?: number[], mode?: "historical-tx" | "current-tx" | "historical-tx-no-spv") => Promise<AdmittanceInstructions>
+```
+
+#### Property identifyNeededInputs
+
+Identifies and returns the inputs needed to anchor any topical outputs from this transaction to their associated previous history.
+
+```ts
+identifyNeededInputs?: (beef: number[], offChainValues?: number[]) => Promise<Array<{
+    txid: string;
+    outputIndex: number;
+}>>
+```
+
+</details>
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
@@ -254,31 +629,31 @@ export class Engine {
         [key: string]: TopicManager;
     }, public lookupServices: {
         [key: string]: LookupService;
-    }, public storage: Storage, public chainTracker: ChainTracker | "scripts only", public hostingURL?: string, public shipTrackers?: string[], public slapTrackers?: string[], public broadcaster?: Broadcaster, public advertiser?: Advertiser, public syncConfiguration?: SyncConfiguration, public logTime = false, public logPrefix = "[OVERLAY_ENGINE] ", public throwOnBroadcastFailure = false, public overlayBroadcastFacilitator: OverlayBroadcastFacilitator = new HTTPSOverlayBroadcastFacilitator(), public logger: typeof console = console, public suppressDefaultSyncAdvertisements = true) 
-    async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" | "historical-tx-no-spv" = "current-tx", offChainValues?: number[]): Promise<STEAK> 
-    async lookup(lookupQuestion: LookupQuestion): Promise<LookupAnswer> 
-    async syncAdvertisements(): Promise<void> 
-    async startGASPSync(): Promise<void> 
-    async provideForeignSyncResponse(initialRequest: GASPInitialRequest, topic: string): Promise<GASPInitialResponse> 
-    async provideForeignGASPNode(graphID: string, txid: string, outputIndex: number): Promise<GASPNode> 
-    async getUTXOHistory(output: Output, historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number, currentDepth = 0, context: UTXOHistoryHydrationContext = this.createUTXOHistoryHydrationContext()): Promise<Output | undefined> 
-    async handleNewMerkleProof(txid: string, proof: MerklePath, blockHeight?: number): Promise<void> 
+    }, public storage: Storage, public chainTracker: ChainTracker | "scripts only", public hostingURL?: string, public shipTrackers?: string[], public slapTrackers?: string[], public broadcaster?: Broadcaster, public advertiser?: Advertiser, public syncConfiguration?: SyncConfiguration, public logTime = false, public logPrefix = "[OVERLAY_ENGINE] ", public throwOnBroadcastFailure = false, public overlayBroadcastFacilitator: OverlayBroadcastFacilitator = new HTTPSOverlayBroadcastFacilitator(), public logger: typeof console = console, public suppressDefaultSyncAdvertisements = true)
+    async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" | "historical-tx-no-spv" = "current-tx", offChainValues?: number[]): Promise<STEAK>
+    async lookup(lookupQuestion: LookupQuestion): Promise<LookupAnswer>
+    async syncAdvertisements(): Promise<void>
+    async startGASPSync(): Promise<void>
+    async provideForeignSyncResponse(initialRequest: GASPInitialRequest, topic: string): Promise<GASPInitialResponse>
+    async provideForeignGASPNode(graphID: string, txid: string, outputIndex: number): Promise<GASPNode>
+    async getUTXOHistory(output: Output, historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number, currentDepth = 0, context: UTXOHistoryHydrationContext = this.createUTXOHistoryHydrationContext()): Promise<Output | undefined>
+    async handleNewMerkleProof(txid: string, proof: MerklePath, blockHeight?: number): Promise<void>
     async listTopicManagers(): Promise<Record<string, {
         name: string;
         shortDescription: string;
         iconURL?: string;
         version?: string;
         informationURL?: string;
-    }>> 
+    }>>
     async listLookupServiceProviders(): Promise<Record<string, {
         name: string;
         shortDescription: string;
         iconURL?: string;
         version?: string;
         informationURL?: string;
-    }>> 
-    async getDocumentationForTopicManager(manager: any): Promise<string> 
-    async getDocumentationForLookupServiceProvider(provider: any): Promise<string> 
+    }>>
+    async getDocumentationForTopicManager(manager: any): Promise<string>
+    async getDocumentationForLookupServiceProvider(provider: any): Promise<string>
 }
 ```
 
@@ -297,7 +672,7 @@ constructor(public managers: {
     [key: string]: TopicManager;
 }, public lookupServices: {
     [key: string]: LookupService;
-}, public storage: Storage, public chainTracker: ChainTracker | "scripts only", public hostingURL?: string, public shipTrackers?: string[], public slapTrackers?: string[], public broadcaster?: Broadcaster, public advertiser?: Advertiser, public syncConfiguration?: SyncConfiguration, public logTime = false, public logPrefix = "[OVERLAY_ENGINE] ", public throwOnBroadcastFailure = false, public overlayBroadcastFacilitator: OverlayBroadcastFacilitator = new HTTPSOverlayBroadcastFacilitator(), public logger: typeof console = console, public suppressDefaultSyncAdvertisements = true) 
+}, public storage: Storage, public chainTracker: ChainTracker | "scripts only", public hostingURL?: string, public shipTrackers?: string[], public slapTrackers?: string[], public broadcaster?: Broadcaster, public advertiser?: Advertiser, public syncConfiguration?: SyncConfiguration, public logTime = false, public logPrefix = "[OVERLAY_ENGINE] ", public throwOnBroadcastFailure = false, public overlayBroadcastFacilitator: OverlayBroadcastFacilitator = new HTTPSOverlayBroadcastFacilitator(), public logger: typeof console = console, public suppressDefaultSyncAdvertisements = true)
 ```
 See also: [Advertiser](#interface-advertiser), [LookupService](#interface-lookupservice), [Storage](#interface-storage), [SyncConfiguration](#type-syncconfiguration), [TopicManager](#interface-topicmanager)
 
@@ -341,7 +716,7 @@ Argument Details
 Run a query to get the documentation for a particular lookup service
 
 ```ts
-async getDocumentationForLookupServiceProvider(provider: any): Promise<string> 
+async getDocumentationForLookupServiceProvider(provider: any): Promise<string>
 ```
 
 Returns
@@ -353,7 +728,7 @@ Returns
 Run a query to get the documentation for a particular topic manager
 
 ```ts
-async getDocumentationForTopicManager(manager: any): Promise<string> 
+async getDocumentationForTopicManager(manager: any): Promise<string>
 ```
 
 Returns
@@ -368,7 +743,7 @@ This method traverses the history of a given Unspent Transaction Output (UTXO) a
 its historical data based on the provided history selector and current depth.
 
 ```ts
-async getUTXOHistory(output: Output, historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number, currentDepth = 0, context: UTXOHistoryHydrationContext = this.createUTXOHistoryHydrationContext()): Promise<Output | undefined> 
+async getUTXOHistory(output: Output, historySelector?: ((beef: number[], outputIndex: number, currentDepth: number) => Promise<boolean>) | number, currentDepth = 0, context: UTXOHistoryHydrationContext = this.createUTXOHistoryHydrationContext()): Promise<Output | undefined>
 ```
 See also: [Output](#interface-output)
 
@@ -393,7 +768,7 @@ returning a promise that resolves to a boolean indicating whether to include the
 Recursively prune UTXOs when an incoming Merkle Proof is received.
 
 ```ts
-async handleNewMerkleProof(txid: string, proof: MerklePath, blockHeight?: number): Promise<void> 
+async handleNewMerkleProof(txid: string, proof: MerklePath, blockHeight?: number): Promise<void>
 ```
 
 Argument Details
@@ -416,7 +791,7 @@ async listLookupServiceProviders(): Promise<Record<string, {
     iconURL?: string;
     version?: string;
     informationURL?: string;
-}>> 
+}>>
 ```
 
 Returns
@@ -434,7 +809,7 @@ async listTopicManagers(): Promise<Record<string, {
     iconURL?: string;
     version?: string;
     informationURL?: string;
-}>> 
+}>>
 ```
 
 Returns
@@ -446,7 +821,7 @@ Returns
 Submit a lookup question to the Overlay Services Engine, and receive back a Lookup Answer
 
 ```ts
-async lookup(lookupQuestion: LookupQuestion): Promise<LookupAnswer> 
+async lookup(lookupQuestion: LookupQuestion): Promise<LookupAnswer>
 ```
 
 Returns
@@ -463,7 +838,7 @@ Argument Details
 Provides a GASPNode for the given graphID, transaction ID, and output index.
 
 ```ts
-async provideForeignGASPNode(graphID: string, txid: string, outputIndex: number): Promise<GASPNode> 
+async provideForeignGASPNode(graphID: string, txid: string, outputIndex: number): Promise<GASPNode>
 ```
 
 Returns
@@ -492,7 +867,7 @@ since the provided block height in the request. It constructs a response that in
 and the min block height from the initial request.
 
 ```ts
-async provideForeignSyncResponse(initialRequest: GASPInitialRequest, topic: string): Promise<GASPInitialResponse> 
+async provideForeignSyncResponse(initialRequest: GASPInitialRequest, topic: string): Promise<GASPInitialResponse>
 ```
 
 Returns
@@ -513,7 +888,7 @@ associated with that topic. If the sync configuration is 'SHIP', it will sync to
 the topic.
 
 ```ts
-async startGASPSync(): Promise<void> 
+async startGASPSync(): Promise<void>
 ```
 
 Throws
@@ -525,7 +900,7 @@ Error if the overlay service engine is not configured for topical synchronizatio
 Submits a transaction for processing by Overlay Services.
 
 ```ts
-async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" | "historical-tx-no-spv" = "current-tx", offChainValues?: number[]): Promise<STEAK> 
+async submit(taggedBEEF: TaggedBEEF, onSteakReady?: (steak: STEAK) => void, mode: "historical-tx" | "current-tx" | "historical-tx-no-spv" = "current-tx", offChainValues?: number[]): Promise<STEAK>
 ```
 
 Returns
@@ -563,7 +938,7 @@ The function uses the `Advertiser` methods to create or revoke advertisements an
 submitted to the SHIP/SLAP overlay networks using the engine's `submit()` method.
 
 ```ts
-async syncAdvertisements(): Promise<void> 
+async syncAdvertisements(): Promise<void>
 ```
 
 Returns
@@ -584,29 +959,33 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ```ts
 export class KnexStorage implements Storage {
     knex: Knex;
-    constructor(knex: Knex) 
-    async findOutput(txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF: boolean = false): Promise<Output | null> 
-    async findOutputsForTransaction(txid: string, includeBEEF: boolean = false): Promise<Output[]> 
-    async findUTXOsForTopic(topic: string, since?: number, limit?: number, includeBEEF: boolean = false): Promise<Output[]> 
-    async deleteOutput(txid: string, outputIndex: number, _: string): Promise<void> 
-    async insertOutput(output: Output): Promise<void> 
-    async markUTXOAsSpent(txid: string, outputIndex: number, topic?: string): Promise<void> 
+    constructor(knex: Knex)
+    async findOutput(txid: string, outputIndex: number, topic?: string, spent?: boolean, includeBEEF: boolean = false): Promise<Output | null>
+    async findOutputsByOutpoints(outpoints: Array<{
+        txid: string;
+        outputIndex: number;
+    }>, includeBEEF: boolean = false): Promise<Output[]>
+    async findOutputsForTransaction(txid: string, includeBEEF: boolean = false): Promise<Output[]>
+    async findUTXOsForTopic(topic: string, since?: number, limit?: number, includeBEEF: boolean = false): Promise<Output[]>
+    async deleteOutput(txid: string, outputIndex: number, _: string): Promise<void>
+    async insertOutput(output: Output): Promise<void>
+    async markUTXOAsSpent(txid: string, outputIndex: number, topic?: string): Promise<void>
     async updateConsumedBy(txid: string, outputIndex: number, topic: string, consumedBy: Array<{
         txid: string;
         outputIndex: number;
-    }>): Promise<void> 
-    async updateTransactionBEEF(txid: string, beef: number[]): Promise<void> 
-    async updateOutputBlockHeight(txid: string, outputIndex: number, topic: string, blockHeight: number): Promise<void> 
+    }>): Promise<void>
+    async updateTransactionBEEF(txid: string, beef: number[]): Promise<void>
+    async updateOutputBlockHeight(txid: string, outputIndex: number, topic: string, blockHeight: number): Promise<void>
     async insertAppliedTransaction(tx: {
         txid: string;
         topic: string;
-    }): Promise<void> 
+    }): Promise<void>
     async doesAppliedTransactionExist(tx: {
         txid: string;
         topic: string;
-    }): Promise<boolean> 
-    async updateLastInteraction(host: string, topic: string, since: number): Promise<void> 
-    async getLastInteraction(host: string, topic: string): Promise<number> 
+    }): Promise<boolean>
+    async updateLastInteraction(host: string, topic: string, since: number): Promise<void>
+    async getLastInteraction(host: string, topic: string): Promise<number>
 }
 ```
 
@@ -619,11 +998,11 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 ```ts
 export class OverlayGASPRemote implements GASPRemote {
-    constructor(public endpointURL: string, public topic: string) 
-    async getInitialResponse(request: GASPInitialRequest): Promise<GASPInitialResponse> 
-    async requestNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
-    async getInitialReply(response: GASPInitialResponse): Promise<GASPInitialReply> 
-    async submitNode(node: GASPNode): Promise<GASPNodeResponse | undefined> 
+    constructor(public endpointURL: string, public topic: string)
+    async getInitialResponse(request: GASPInitialRequest): Promise<GASPInitialResponse>
+    async requestNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode>
+    async getInitialReply(response: GASPInitialResponse): Promise<GASPInitialReply>
+    async submitNode(node: GASPNode): Promise<GASPNodeResponse | undefined>
 }
 ```
 
@@ -636,7 +1015,7 @@ export class OverlayGASPRemote implements GASPRemote {
 Given an outgoing initial request, sends the request to the foreign instance and obtains their initial response.
 
 ```ts
-async getInitialResponse(request: GASPInitialRequest): Promise<GASPInitialResponse> 
+async getInitialResponse(request: GASPInitialRequest): Promise<GASPInitialResponse>
 ```
 
 #### Method requestNode
@@ -644,7 +1023,7 @@ async getInitialResponse(request: GASPInitialRequest): Promise<GASPInitialRespon
 Given an outgoing txid, outputIndex and optional metadata, request the associated GASP node from the foreign instance.
 
 ```ts
-async requestNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
+async requestNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode>
 ```
 
 </details>
@@ -657,14 +1036,14 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ```ts
 export class OverlayGASPStorage implements GASPStorage {
     readonly temporaryGraphNodeRefs: Record<string, GraphNode> = {};
-    constructor(public topic: string, public engine: Engine, public maxNodesInGraph?: number) 
-    async findKnownUTXOs(since: number): Promise<GASPOutput[]> 
-    async hydrateGASPNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
-    async findNeededInputs(tx: GASPNode): Promise<GASPNodeResponse | undefined> 
-    async appendToGraph(tx: GASPNode, spentBy?: string | undefined): Promise<void> 
-    async validateGraphAnchor(graphID: string): Promise<void> 
-    async discardGraph(graphID: string): Promise<void> 
-    async finalizeGraph(graphID: string): Promise<void> 
+    constructor(public topic: string, public engine: Engine, public maxNodesInGraph?: number)
+    async findKnownUTXOs(since: number): Promise<GASPOutput[]>
+    async hydrateGASPNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode>
+    async findNeededInputs(tx: GASPNode): Promise<GASPNodeResponse | undefined>
+    async appendToGraph(tx: GASPNode, spentBy?: string | undefined): Promise<void>
+    async validateGraphAnchor(graphID: string): Promise<void>
+    async discardGraph(graphID: string): Promise<void>
+    async finalizeGraph(graphID: string): Promise<void>
 }
 ```
 
@@ -679,7 +1058,7 @@ See also: [Engine](#class-engine), [GraphNode](#interface-graphnode)
 Appends a new node to a temporary graph.
 
 ```ts
-async appendToGraph(tx: GASPNode, spentBy?: string | undefined): Promise<void> 
+async appendToGraph(tx: GASPNode, spentBy?: string | undefined): Promise<void>
 ```
 
 Argument Details
@@ -698,7 +1077,7 @@ If the node cannot be appended to the graph, either because the graph ID is for 
 Deletes all data associated with a temporary graph that has failed to sync, if the graph exists.
 
 ```ts
-async discardGraph(graphID: string): Promise<void> 
+async discardGraph(graphID: string): Promise<void>
 ```
 
 Argument Details
@@ -711,7 +1090,7 @@ Argument Details
 Finalizes a graph, solidifying the new UTXO and its ancestors so that it will appear in the list of known UTXOs.
 
 ```ts
-async finalizeGraph(graphID: string): Promise<void> 
+async finalizeGraph(graphID: string): Promise<void>
 ```
 
 Argument Details
@@ -724,7 +1103,7 @@ Argument Details
 For a given node, returns the inputs needed to complete the graph, including whether updated metadata is requested for those inputs.
 
 ```ts
-async findNeededInputs(tx: GASPNode): Promise<GASPNodeResponse | undefined> 
+async findNeededInputs(tx: GASPNode): Promise<GASPNodeResponse | undefined>
 ```
 
 Returns
@@ -741,7 +1120,7 @@ Argument Details
 For a given txid and output index, returns the associated transaction, a merkle proof if the transaction is in a block, and metadata if if requested. If no metadata is requested, metadata hashes on inputs are not returned.
 
 ```ts
-async hydrateGASPNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode> 
+async hydrateGASPNode(graphID: string, txid: string, outputIndex: number, metadata: boolean): Promise<GASPNode>
 ```
 
 #### Method validateGraphAnchor
@@ -751,7 +1130,7 @@ Additionally, in a breadth-first manner (ensuring that all inputs for any given 
 while considering any coins which the Manager had previously indicated were either valid or invalid.
 
 ```ts
-async validateGraphAnchor(graphID: string): Promise<void> 
+async validateGraphAnchor(graphID: string): Promise<void>
 ```
 
 Argument Details
@@ -770,10 +1149,16 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 ## Functions
 
-| |
-| --- |
-| [down](#function-down) |
-| [up](#function-up) |
+| | |
+| --- | --- |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
+| [down](#function-down) | [up](#function-up) |
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
@@ -783,6 +1168,132 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 ```ts
 export async function down(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: down
+
+```ts
+export async function down(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: up
+
+```ts
+export async function up(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: up
+
+```ts
+export async function up(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: up
+
+```ts
+export async function up(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: up
+
+```ts
+export async function up(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: up
+
+```ts
+export async function up(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: up
+
+```ts
+export async function up(knex: Knex): Promise<void>
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
+
+---
+### Function: up
+
+```ts
+export async function up(knex: Knex): Promise<void>
 ```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
@@ -939,6 +1450,3 @@ export type SyncConfiguration = Record<string, string[] | "SHIP" | false>
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types)
 
 ---
-
-[🏠 Home](./README.md) | [📚 API](./API.md) | [💡 Concepts](./concepts/README.md) | [📖 Examples](./examples/README.md) | [⚙️ Internal](./internal/README.md)
-
